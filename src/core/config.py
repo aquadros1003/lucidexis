@@ -6,7 +6,6 @@ from pydantic import (
     AnyUrl,
     BeforeValidator,
     EmailStr,
-    PostgresDsn,
     computed_field,
     model_validator,
 )
@@ -57,7 +56,7 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+    def SQLALCHEMY_DATABASE_URI(self) -> MultiHostUrl:
         return MultiHostUrl.build(
             scheme="postgresql+psycopg",
             username=self.POSTGRES_USER,
@@ -107,4 +106,4 @@ class Settings(BaseSettings):
         return self
 
 
-settings = Settings()  # type: ignore
+settings = Settings()

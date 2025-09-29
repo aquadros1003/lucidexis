@@ -7,8 +7,9 @@ format:
 	uv run ruff format src scripts
 
 lint:
-	uv run ruff check src scripts
-	uv run ruff format src scripts --check
+	uv run mypy src/
+	uv run ruff check src/
+	uv run ruff format src --check
 
 test:
 	docker-compose up -d db

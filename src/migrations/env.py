@@ -21,8 +21,8 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 
-from core.db import Base
 from core.config import settings  # noqa
+from core.db import Base
 
 target_metadata = Base.metadata
 

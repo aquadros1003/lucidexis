@@ -2,11 +2,12 @@ import factory
 from pytest_factoryboy import register
 
 from core.security import get_password_hash
+from tests.factories.base import TypedSQLAFactory
 from users.domain.models.user import User
 
 
 @register
-class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
+class UserFactory(TypedSQLAFactory["User"]):
     class Meta:
         model = User
         sqlalchemy_session_persistence = "commit"

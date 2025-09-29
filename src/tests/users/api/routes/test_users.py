@@ -7,17 +7,14 @@ from sqlmodel import Session, select
 import users.domain.services.user as user_service
 from core.config import settings
 from core.security import verify_password
-from tests.users.factories.user import UserFactory
+from tests.factories.user import UserFactory
 from tests.utils.user import user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
 from users.domain.models.user import User as DbUser
 
 
-def test_get_users_superuser_me(
-    user_factory: UserFactory,
-    client: TestClient,
-) -> None:
-    user = user_factory(is_superuser=True, password="password")
+def test_get_users_superuser_me(client: TestClient, user_factory: UserFactory) -> None:
+    user = user_factory.create(is_superuser=True, password="password")
     r = client.get(
         f"{settings.API_V1_STR}/users/me",
         headers=user_authentication_headers(
@@ -41,19 +38,17 @@ def test_get_users_normal_user_me(
 
 
 def test_create_user_new_email(
-    user_factory: UserFactory,
-    client: TestClient,
-    db: Session,
+    client: TestClient, db: Session, user_factory: UserFactory
 ) -> None:
-    user = user_factory(password="password", is_superuser=True)
+    user = user_factory.create(password="password", is_superuser=True)
     with (
         patch("utils.send_email", return_value=None),
         patch("core.config.settings.SMTP_HOST", "smtp.example.com"),
         patch("core.config.settings.SMTP_USER", "admin@example.com"),
     ):
-        username = random_email()
+        email = random_email()
         password = random_lower_string()
-        data = {"email": username, "password": password}
+        data = {"email": email, "password": password}
         r = client.post(
             f"{settings.API_V1_STR}/users/",
             headers=user_authentication_headers(
@@ -63,17 +58,15 @@ def test_create_user_new_email(
         )
         assert 200 <= r.status_code < 300
         created_user = r.json()
-        user = user_service.get_user_by_email(session=db, email=username)
-        assert user
-        assert user.email == created_user["email"]
+        db_user = user_service.get_user_by_email(session=db, email=email)
+        assert db_user
+        assert db_user.email == created_user["email"]
 
 
 def test_get_existing_user(
-    user_factory: UserFactory,
-    client: TestClient,
-    db: Session,
+    client: TestClient, db: Session, user_factory: UserFactory
 ) -> None:
-    user = user_factory(is_superuser=True, password="password")
+    user = user_factory.create(is_superuser=True, password="password")
     r = client.get(
         f"{settings.API_V1_STR}/users/{user.id}",
         headers=user_authentication_headers(
@@ -125,10 +118,9 @@ def test_get_existing_user_permissions_error(
 
 
 def test_create_user_existing_username(
-    user_factory: UserFactory,
-    client: TestClient,
+    client: TestClient, user_factory: UserFactory
 ) -> None:
-    user = user_factory(is_superuser=True, password="password")
+    user = user_factory.create(is_superuser=True, password="password")
     data = {"email": user.email, "password": "password"}
     r = client.post(
         f"{settings.API_V1_STR}/users/",
@@ -156,13 +148,10 @@ def test_create_user_by_normal_user(
     assert r.status_code == 403
 
 
-def test_retrieve_users(
-    user_factory: UserFactory,
-    client: TestClient,
-) -> None:
-    user_factory(password="password1")
-    user_factory(password="password2")
-    user = user_factory(password="password", is_superuser=True)
+def test_retrieve_users(client: TestClient, user_factory: UserFactory) -> None:
+    user_factory.create(password="password1")
+    user_factory.create(password="password2")
+    user = user_factory.create(password="password", is_superuser=True)
 
     r = client.get(
         f"{settings.API_V1_STR}/users/",
@@ -179,11 +168,9 @@ def test_retrieve_users(
 
 
 def test_update_user_me(
-    user_factory: UserFactory,
-    client: TestClient,
-    db: Session,
+    client: TestClient, db: Session, user_factory: UserFactory
 ) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     full_name = "Updated Name"
     email = random_email()
     data = {"full_name": full_name, "email": email}
@@ -208,11 +195,9 @@ def test_update_user_me(
 
 
 def test_update_password_me(
-    user_factory: UserFactory,
-    client: TestClient,
-    db: Session,
+    client: TestClient, db: Session, user_factory: UserFactory
 ) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     new_password = random_lower_string()
     data = {
         "current_password": "password",
@@ -238,9 +223,9 @@ def test_update_password_me(
 
 
 def test_update_password_me_incorrect_password(
-    user_factory: UserFactory, client: TestClient
+    client: TestClient, user_factory: UserFactory
 ) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     new_password = random_lower_string()
     data = {"current_password": new_password, "new_password": new_password}
     r = client.patch(
@@ -273,10 +258,9 @@ def test_update_user_me_email_exists(
 
 
 def test_update_password_me_same_password_error(
-    user_factory: UserFactory,
-    client: TestClient,
+    client: TestClient, user_factory: UserFactory
 ) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     data = {
         "current_password": "password",
         "new_password": "password",
@@ -318,9 +302,9 @@ def test_register_user(client: TestClient, db: Session) -> None:
 
 
 def test_register_user_already_exists_error(
-    user_factory: UserFactory, client: TestClient
+    client: TestClient, user_factory: UserFactory
 ) -> None:
-    user = user_factory()
+    user = user_factory.create()
     password = random_lower_string()
     full_name = random_lower_string()
     data = {
@@ -337,11 +321,9 @@ def test_register_user_already_exists_error(
 
 
 def test_update_user(
-    user_factory: UserFactory,
-    client: TestClient,
-    db: Session,
+    client: TestClient, db: Session, user_factory: UserFactory
 ) -> None:
-    user = user_factory(is_superuser=True, password="password")
+    user = user_factory.create(is_superuser=True, password="password")
     data = {"full_name": "Updated_full_name"}
     r = client.patch(
         f"{settings.API_V1_STR}/users/{user.id}",
@@ -362,11 +344,8 @@ def test_update_user(
     assert user_db.full_name == "Updated_full_name"
 
 
-def test_update_user_not_exists(
-    user_factory: UserFactory,
-    client: TestClient,
-) -> None:
-    user = user_factory(is_superuser=True, password="password")
+def test_update_user_not_exists(client: TestClient, user_factory: UserFactory) -> None:
+    user = user_factory.create(is_superuser=True, password="password")
     data = {"full_name": "Updated_full_name"}
     r = client.patch(
         f"{settings.API_V1_STR}/users/{uuid.uuid4()}",
@@ -380,14 +359,13 @@ def test_update_user_not_exists(
 
 
 def test_update_user_email_exists(
-    user_factory: UserFactory,
-    client: TestClient,
+    client: TestClient, user_factory: UserFactory
 ) -> None:
-    user = user_factory(is_superuser=True, password="password")
+    user = user_factory.create(is_superuser=True, password="password")
     password = random_lower_string()
     password2 = random_lower_string()
-    user_factory(password=password)
-    user2 = user_factory(password=password2)
+    user_factory.create(password=password)
+    user2 = user_factory.create(password=password2)
 
     data = {"email": user2.email}
     r = client.patch(
@@ -432,10 +410,9 @@ def test_delete_user_me(client: TestClient, db: Session) -> None:
 
 
 def test_delete_user_me_as_superuser(
-    user_factory: UserFactory,
-    client: TestClient,
+    client: TestClient, user_factory: UserFactory
 ) -> None:
-    user = user_factory(is_superuser=True, password="password")
+    user = user_factory.create(is_superuser=True, password="password")
     r = client.delete(
         f"{settings.API_V1_STR}/users/me",
         headers=user_authentication_headers(
@@ -448,13 +425,11 @@ def test_delete_user_me_as_superuser(
 
 
 def test_delete_user_super_user(
-    user_factory: UserFactory,
-    client: TestClient,
-    db: Session,
+    client: TestClient, db: Session, user_factory: UserFactory
 ) -> None:
-    super_user = user_factory(is_superuser=True, password="password")
+    super_user = user_factory.create(is_superuser=True, password="password")
     password = random_lower_string()
-    user = user_factory(password=password)
+    user = user_factory.create(password=password)
     r = client.delete(
         f"{settings.API_V1_STR}/users/{user.id}",
         headers=user_authentication_headers(
@@ -468,11 +443,8 @@ def test_delete_user_super_user(
     assert result is None
 
 
-def test_delete_user_not_found(
-    user_factory: UserFactory,
-    client: TestClient,
-) -> None:
-    super_user = user_factory(is_superuser=True, password="password")
+def test_delete_user_not_found(client: TestClient, user_factory: UserFactory) -> None:
+    super_user = user_factory.create(is_superuser=True, password="password")
     r = client.delete(
         f"{settings.API_V1_STR}/users/{uuid.uuid4()}",
         headers=user_authentication_headers(
@@ -484,10 +456,9 @@ def test_delete_user_not_found(
 
 
 def test_delete_user_current_super_user_error(
-    user_factory: UserFactory,
-    client: TestClient,
+    client: TestClient, user_factory: UserFactory
 ) -> None:
-    super_user = user_factory(
+    super_user = user_factory.create(
         username="superuser@admin.com", is_superuser=True, password="password"
     )
     r = client.delete(

@@ -5,14 +5,14 @@ from sqlmodel import Session
 
 from core.config import settings
 from core.security import verify_password
-from tests.users.factories.user import UserFactory
+from tests.factories.user import UserFactory
 from tests.utils.user import user_authentication_headers
 from tests.utils.utils import random_email, random_lower_string
 from utils import generate_password_reset_token
 
 
 def test_get_access_token(user_factory: UserFactory, client: TestClient) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     login_data = {
         "username": user.email,
         "password": "password",
@@ -27,7 +27,7 @@ def test_get_access_token(user_factory: UserFactory, client: TestClient) -> None
 def test_get_access_token_incorrect_password(
     user_factory: UserFactory, client: TestClient
 ) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     login_data = {
         "username": user.email,
         "password": "incorrect",
@@ -40,7 +40,7 @@ def test_use_access_token(
     user_factory: UserFactory,
     client: TestClient,
 ) -> None:
-    user = user_factory(is_superuser=True, password="password")
+    user = user_factory.create(password="password")
     r = client.post(
         f"{settings.API_V1_STR}/login/test-token",
         headers=user_authentication_headers(
@@ -56,7 +56,7 @@ def test_recovery_password(
     user_factory: UserFactory,
     client: TestClient,
 ) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     with (
         patch("core.config.settings.SMTP_HOST", "smtp.example.com"),
         patch("core.config.settings.SMTP_USER", "admin@example.com"),
@@ -89,7 +89,7 @@ def test_reset_password(
     email = random_email()
     new_password = random_lower_string()
 
-    user = user_factory(email=email, password="password")
+    user = user_factory.create(email=email, password="password")
     token = generate_password_reset_token(email=email)
     headers = user_authentication_headers(
         client=client, email=email, password="password"
@@ -113,7 +113,7 @@ def test_reset_password_invalid_token(
     user_factory: UserFactory,
     client: TestClient,
 ) -> None:
-    user = user_factory(password="password")
+    user = user_factory.create(password="password")
     data = {"new_password": "changethis", "token": "invalid"}
     r = client.post(
         f"{settings.API_V1_STR}/reset-password/",

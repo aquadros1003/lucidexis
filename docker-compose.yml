@@ -35,6 +35,8 @@ services:
         restart: true
     env_file:
       - .env
+    volumes:
+      - .:/app
     environment:
       - DOMAIN=${DOMAIN}
       - FRONTEND_HOST=${FRONTEND_HOST}

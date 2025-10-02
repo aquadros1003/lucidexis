@@ -3,8 +3,8 @@ SHELL := /bin/bash
 .PHONY: format lint test prestart
 
 format:
-	uv run ruff check src scripts --fix
-	uv run ruff format src scripts
+	uv run ruff check src --fix
+	uv run ruff format src
 
 lint:
 	uv run mypy src/
@@ -18,6 +18,11 @@ test:
 	uv run coverage html --title "coverage"
 
 prestart:
-	uv run python src/backend_pre_start.py
 	uv run alembic upgrade head
-	uv run python src/initial_data.py
+
+create-migration:
+	@read -p "Enter migration message: " msg; \
+	uv run alembic revision --autogenerate -m "$$msg"
+
+start:
+	docker-compose up --build

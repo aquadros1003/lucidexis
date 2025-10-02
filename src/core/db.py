@@ -1,11 +1,11 @@
 from sqlalchemy.orm import declarative_base
-from sqlmodel import Session, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 from core.config import settings
 
-Base = declarative_base()
-
 engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+
+Base = declarative_base(metadata=SQLModel.metadata)
 
 
 # make sure all SQLModel models are imported (app.models) before initializing DB

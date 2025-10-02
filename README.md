@@ -27,8 +27,6 @@ $ source .venv/bin/activate
 
 Make sure your editor is using the correct Python virtual environment, with the interpreter at `/.venv/bin/python`.
 
-Modify or add SQLModel models for data and SQL tables in `./app/models.py`, API endpoints in `./app/api/`, CRUD (Create, Read, Update, Delete) utils in `./app/crud.py`.
-
 The tests run with Pytest, modify and add tests to `./app/tests/`.
 
 If you use GitHub Actions the tests will run automatically.
@@ -65,7 +63,7 @@ $ alembic revision --autogenerate -m "Add column last_name to User model"
 $ alembic upgrade head
 ```
 
-If you don't want to use migrations at all, uncomment the lines in the file at `./backend/app/core/db.py` that end in:
+If you don't want to use migrations at all, uncomment the lines in the file at `./src/core/db.py` that end in:
 
 ```python
 SQLModel.metadata.create_all(engine)

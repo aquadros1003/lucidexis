@@ -7,7 +7,7 @@ TModel = TypeVar("TModel")
 
 class TypedSQLAFactory(SQLAlchemyModelFactory, Generic[TModel]):
     class Meta:
-        sqlalchemy_session_persistence = "commit"
+        sqlalchemy_session_persistence = "flush"
 
     @overload  # type: ignore[misc]
     @classmethod

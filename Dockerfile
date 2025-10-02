@@ -16,9 +16,8 @@ COPY ./pyproject.toml ./uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev --locked --no-install-project
 
-COPY ./src .
-COPY ./scripts /app/scripts
+COPY . /app
 
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=./src
 
-CMD ["uv", "run", "--no-dev", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--no-dev", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

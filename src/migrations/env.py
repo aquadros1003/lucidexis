@@ -20,9 +20,12 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
+from users.domain.models.user import User  # noqa
+
+# from documents.domain.models.document import Document, DocumentChunk  # noqa
 
 from core.config import settings  # noqa
-from core.db import Base
+from core.db import Base  # noqa
 
 target_metadata = Base.metadata
 

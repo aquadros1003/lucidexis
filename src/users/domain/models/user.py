@@ -1,11 +1,31 @@
+import uuid
+from datetime import datetime
+
 from pydantic import EmailStr
-from sqlmodel import Field
-
-from core.base_model import SQLModelBase
+from sqlmodel import TIMESTAMP, Column, FetchedValue, Field, SQLModel, text
 
 
-class User(SQLModelBase, table=True):
+class User(SQLModel, table=True):
     __tablename__ = "user"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(),
+        sa_column=Column(
+            TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=text("CURRENT_TIMESTAMP"),
+        ),
+    )
+    updated_at: datetime | None = Field(
+        default_factory=lambda: datetime.now(),
+        sa_column=Column(
+            TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=text("CURRENT_TIMESTAMP"),
+            server_onupdate=FetchedValue(),
+        ),
+    )
 
     email: EmailStr = Field(unique=True, index=True, max_length=255)
     is_active: bool = True

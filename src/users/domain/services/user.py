@@ -1,5 +1,3 @@
-from typing import Any
-
 from sqlmodel import Session, select
 
 from core.security import get_password_hash, verify_password
@@ -31,7 +29,7 @@ def create_user(
     return db_obj
 
 
-def update_user(*, session: Session, db_user: DbUser, user_in: UserUpdate) -> Any:
+def update_user(*, session: Session, db_user: DbUser, user_in: UserUpdate) -> DbUser:
     user_data = user_in.model_dump(exclude_unset=True)
     extra_data = {}
     if "password" in user_data:

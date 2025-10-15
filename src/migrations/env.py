@@ -22,7 +22,7 @@ fileConfig(config.config_file_name)
 # target_metadata = None
 from users.domain.models.user import User  # noqa
 
-# from documents.domain.models.document import Document, DocumentChunk  # noqa
+from documents.domain.models.document import Document, DocumentChunk  # noqa
 
 from core.config import settings  # noqa
 from core.db import Base  # noqa

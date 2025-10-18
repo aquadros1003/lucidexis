@@ -14,14 +14,14 @@ from users.domain.models.user import User as DbUser
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_database() -> Generator[None, None, None]:
+def setup_database() -> Generator[None]:
     SQLModel.metadata.create_all(engine)
     yield
     SQLModel.metadata.drop_all(engine)
 
 
 @pytest.fixture(autouse=True)
-def db() -> Generator[Session, None, None]:
+def db() -> Generator[Session]:
     with Session(engine) as session:
         try:
             session.rollback()
@@ -35,7 +35,7 @@ def db() -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
+def client() -> Generator[TestClient]:
     with TestClient(app) as c:
         yield c
 

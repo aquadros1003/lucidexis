@@ -1,11 +1,9 @@
-from typing import Generic, TypeVar, overload
+from typing import overload
 
 from factory.alchemy import SQLAlchemyModelFactory
 
-TModel = TypeVar("TModel")
 
-
-class TypedSQLAFactory(SQLAlchemyModelFactory, Generic[TModel]):
+class TypedSQLAFactory[TModel](SQLAlchemyModelFactory):
     class Meta:
         sqlalchemy_session_persistence = "flush"
 

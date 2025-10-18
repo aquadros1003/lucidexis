@@ -1,3 +1,4 @@
+import os
 import secrets
 import warnings
 from typing import Annotated, Any, Literal
@@ -98,6 +99,14 @@ class Settings(BaseSettings):
     def _enforce_non_default_secrets(self) -> Self:
         self._check_default_secret("POSTGRES_PASSWORD", self.POSTGRES_PASSWORD)
 
+        return self
+
+    DOCUMENTS_DIR: str = "./media/documents"
+
+    @model_validator(mode="after")
+    def _ensure_documents_dir_exists(self) -> Self:
+        if not os.path.exists(self.DOCUMENTS_DIR):
+            os.makedirs(self.DOCUMENTS_DIR, exist_ok=True)
         return self
 
 

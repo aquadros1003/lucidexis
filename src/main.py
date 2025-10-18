@@ -3,6 +3,7 @@ from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 
 from core.config import settings
+from documents.api.routes.document import router as document_router
 from users.api.routes.login import router as login_router
 from users.api.routes.private import router as private_router
 from users.api.routes.users import router as users_router
@@ -29,5 +30,6 @@ if settings.all_cors_origins:
     )
 app.include_router(login_router, prefix=settings.API_V1_STR)
 app.include_router(users_router, prefix=settings.API_V1_STR)
+app.include_router(document_router, prefix=settings.API_V1_STR)
 if settings.ENVIRONMENT == "local":
     app.include_router(private_router, prefix=settings.API_V1_STR)

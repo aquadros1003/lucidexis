@@ -57,8 +57,6 @@ services:
       - traefik.constraint-label=traefik-public
       - traefik.http.routers.backend.rule=PathPrefix(`/api`) || PathPrefix(`/docs`)
       - traefik.http.services.backend.loadbalancer.server.port=8000
-    ports:
-      - "8000"
 
 
   traefik:

@@ -3,9 +3,9 @@ from collections.abc import Generator
 import pytest
 from fastapi.testclient import TestClient
 from pytest_factoryboy import register
-from sqlmodel import Session, delete
+from sqlmodel import Session, SQLModel, delete
 
-from core.db import engine, init_db
+from core.db import engine
 from main import app
 from tests.factories.user import UserFactory
 from tests.utils.user import authentication_token_from_email
@@ -13,15 +13,25 @@ from tests.utils.utils import get_superuser_token_headers
 from users.domain.models.user import User as DbUser
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_database() -> Generator[None, None, None]:
+    SQLModel.metadata.create_all(engine)
+    yield
+    SQLModel.metadata.drop_all(engine)
+
+
 @pytest.fixture(autouse=True)
 def db() -> Generator[Session, None, None]:
     with Session(engine) as session:
-        init_db(session)
-        yield session
-        statement = delete(DbUser)
-        session.exec(statement)
-        session.commit()
-        session.rollback()
+        try:
+            session.rollback()
+            statement = delete(DbUser)
+            session.exec(statement)
+            session.commit()
+            yield session
+        except Exception:
+            session.rollback()
+            raise
 
 
 @pytest.fixture

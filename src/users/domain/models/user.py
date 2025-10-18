@@ -1,8 +1,20 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from pydantic import EmailStr
-from sqlmodel import TIMESTAMP, Column, FetchedValue, Field, SQLModel, text
+from sqlmodel import (
+    TIMESTAMP,
+    Column,
+    FetchedValue,
+    Field,
+    Relationship,
+    SQLModel,
+    text,
+)
+
+if TYPE_CHECKING:
+    from documents.domain.models.document import Document
 
 
 class User(SQLModel, table=True):
@@ -32,6 +44,8 @@ class User(SQLModel, table=True):
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
     hashed_password: str
+
+    documents: list["Document"] = Relationship(back_populates="owner")
 
     def __repr__(self) -> str:
         return f"User(email={self.email}, is_active={self.is_active})"

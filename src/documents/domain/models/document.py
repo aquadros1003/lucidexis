@@ -1,7 +1,19 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlmodel import TIMESTAMP, Column, FetchedValue, Field, SQLModel, text
+from sqlmodel import (
+    TIMESTAMP,
+    Column,
+    FetchedValue,
+    Field,
+    Relationship,
+    SQLModel,
+    text,
+)
+
+if TYPE_CHECKING:
+    from users.domain.models.user import User
 
 
 class Document(SQLModel, table=True):
@@ -32,6 +44,9 @@ class Document(SQLModel, table=True):
     is_processed: bool = Field(default=False, nullable=False)
 
     owner_id: uuid.UUID = Field(foreign_key="user.id", index=True)
+    owner: "User" = Relationship(back_populates="documents")
+
+    chunks: list["DocumentChunk"] = Relationship(back_populates="document")
 
 
 class DocumentChunk(SQLModel, table=True):
@@ -58,3 +73,4 @@ class DocumentChunk(SQLModel, table=True):
     content: str
 
     document_id: uuid.UUID = Field(foreign_key="document.id", index=True)
+    document: "Document" = Relationship(back_populates="chunks")

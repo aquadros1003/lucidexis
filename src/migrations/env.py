@@ -18,12 +18,13 @@ fileConfig(config.config_file_name)
 from core.config import settings  # noqa
 from core.db import Base  # noqa
 from documents.domain.models.document import Document, DocumentChunk  # noqa
+from users.domain.models.user import User  # noqa
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
-from users.domain.models.user import User  # noqa
 
 target_metadata = Base.metadata
 

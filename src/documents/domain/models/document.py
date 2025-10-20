@@ -40,13 +40,22 @@ class Document(SQLModel, table=True):
 
     filename: str = Field(max_length=255)
     content_type: str = Field(max_length=100)
+    file_path: str = Field(max_length=500)
 
     is_processed: bool = Field(default=False, nullable=False)
 
     owner_id: uuid.UUID = Field(foreign_key="user.id", index=True)
     owner: "User" = Relationship(back_populates="documents")
 
-    chunks: list["DocumentChunk"] = Relationship(back_populates="document")
+    chunks: list["DocumentChunk"] = Relationship(
+        back_populates="document", cascade_delete=True
+    )
+
+    def __repr__(self) -> str:
+        return f"Document(filename={self.filename}, owner_id={self.owner_id})"
+
+    def __str__(self) -> str:
+        return f"Document(filename={self.filename}, owner_id={self.owner_id})"
 
 
 class DocumentChunk(SQLModel, table=True):
@@ -74,3 +83,9 @@ class DocumentChunk(SQLModel, table=True):
 
     document_id: uuid.UUID = Field(foreign_key="document.id", index=True)
     document: "Document" = Relationship(back_populates="chunks")
+
+    def __repr__(self) -> str:
+        return f"DocumentChunk(document_id={self.document_id}, chunk_index={self.chunk_index})"
+
+    def __str__(self) -> str:
+        return f"DocumentChunk(document_id={self.document_id}, chunk_index={self.chunk_index})"

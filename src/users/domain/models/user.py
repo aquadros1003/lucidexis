@@ -45,7 +45,9 @@ class User(SQLModel, table=True):
     full_name: str | None = Field(default=None, max_length=255)
     hashed_password: str
 
-    documents: list["Document"] = Relationship(back_populates="owner")
+    documents: list["Document"] = Relationship(
+        back_populates="owner", cascade_delete=True
+    )
 
     def __repr__(self) -> str:
         return f"User(email={self.email}, is_active={self.is_active})"

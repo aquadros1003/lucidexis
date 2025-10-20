@@ -108,5 +108,57 @@ class Settings(BaseSettings):
             os.makedirs(self.DOCUMENTS_DIR, exist_ok=True)
         return self
 
+    LOGGING_CONFIG: dict[str, Any] = {
+        "version": 1,
+        "disable_existing_loggers": True,
+        "formatters": {
+            "colored": {
+                "()": "colorlog.ColoredFormatter",
+                "format": "%(asctime)s %(log_color)s[%(levelname)s]%(reset)s %(name)s: %(message)s",
+                "log_colors": {
+                    "DEBUG": "cyan",
+                    "INFO": "green",
+                    "WARNING": "yellow",
+                    "ERROR": "red",
+                    "CRITICAL": "red,bg_white",
+                },
+            },
+        },
+        "handlers": {
+            "default": {
+                "level": "INFO",
+                "formatter": "colored",
+                "class": "logging.StreamHandler",
+            },
+        },
+        "loggers": {
+            "": {
+                "level": "INFO",
+                "handlers": ["default"],
+                "propagate": False,
+            },
+            "uvicorn.error": {
+                "level": "DEBUG",
+                "handlers": ["default"],
+                "propagate": False,
+            },
+            "uvicorn.access": {
+                "level": "DEBUG",
+                "handlers": ["default"],
+                "propagate": False,
+            },
+            "documents": {
+                "level": "DEBUG",
+                "handlers": ["default"],
+                "propagate": False,
+            },
+            "users": {
+                "level": "DEBUG",
+                "handlers": ["default"],
+                "propagate": False,
+            },
+        },
+    }
+
 
 settings = Settings()

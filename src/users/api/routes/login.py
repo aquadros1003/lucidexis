@@ -7,10 +7,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from core import security
 from core.config import settings
+from core.db import SessionDep
 from core.security import get_password_hash
 from users.api.schemas.auth import Token
 from users.api.schemas.user import Message, NewPassword, UserPublic
-from users.deps import CurrentUser, SessionDep, get_current_active_superuser
+from users.deps import CurrentUser, get_current_active_superuser
 from users.domain.services.user import authenticate, get_user_by_email
 from utils import (
     generate_password_reset_token,

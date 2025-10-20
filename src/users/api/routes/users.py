@@ -6,6 +6,7 @@ from sqlmodel import func, select
 
 import users.domain.services.user as user_service
 from core.config import settings
+from core.db import SessionDep
 from core.security import get_password_hash, verify_password
 from users.api.schemas.user import (
     Message,
@@ -17,7 +18,7 @@ from users.api.schemas.user import (
     UserUpdate,
     UserUpdateMe,
 )
-from users.deps import CurrentUser, SessionDep, get_current_active_superuser
+from users.deps import CurrentUser, get_current_active_superuser
 from users.domain.models.user import User as DbUser
 from utils import generate_new_account_email, send_email
 

@@ -20,7 +20,6 @@ test:
 	uv run alembic -x db_url=postgresql+psycopg://postgres:password@localhost:5432/testdb upgrade head
 	uv run coverage run --source=src -m pytest
 	uv run coverage report --show-missing
-	uv run coverage html --title "coverage"
 
 prestart:
 	uv run alembic upgrade head

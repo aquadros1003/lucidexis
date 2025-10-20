@@ -3,14 +3,14 @@ from collections.abc import Generator
 import pytest
 from fastapi.testclient import TestClient
 from pytest_factoryboy import register
-from sqlmodel import Session, SQLModel, delete
+from sqlmodel import Session, SQLModel
 
 from core.db import engine
 from main import app
+from tests.factories.document import DocumentFactory
 from tests.factories.user import UserFactory
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
-from users.domain.models.user import User as DbUser
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -25,9 +25,6 @@ def db() -> Generator[Session]:
     with Session(engine) as session:
         try:
             session.rollback()
-            statement = delete(DbUser)
-            session.exec(statement)
-            session.commit()
             yield session
         except Exception:
             session.rollback()
@@ -59,7 +56,9 @@ def normal_user_token_headers(
 
 @pytest.fixture(autouse=True)
 def set_session_for_factories(db: Session) -> None:
+    DocumentFactory._meta.sqlalchemy_session = db  # type: ignore
     UserFactory._meta.sqlalchemy_session = db  # type: ignore
 
 
+register(DocumentFactory)
 register(UserFactory)

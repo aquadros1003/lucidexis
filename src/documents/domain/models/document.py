@@ -63,19 +63,21 @@ class DocumentChunk(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     created_at: datetime = Field(
+        default_factory=lambda: datetime.now(),
         sa_column=Column(
             TIMESTAMP(timezone=True),
             nullable=False,
             server_default=text("CURRENT_TIMESTAMP"),
-        )
+        ),
     )
     updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(),
         sa_column=Column(
             TIMESTAMP(timezone=True),
             nullable=False,
             server_default=text("CURRENT_TIMESTAMP"),
             server_onupdate=FetchedValue(),
-        )
+        ),
     )
 
     chunk_index: int

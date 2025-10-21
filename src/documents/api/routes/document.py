@@ -26,6 +26,7 @@ async def upload_document(
     session: SessionDep,
     current_user: CurrentUser,
     file: UploadFile = File(...),
+    chunk_size: int = 1024,
     background_tasks: BackgroundTasks,
 ) -> Any:
     try:
@@ -45,7 +46,10 @@ async def upload_document(
             content_type=file.content_type,
         )
         background_tasks.add_task(
-            chunk_document, document_id=document.id, chunk_size=1024, session=session
+            chunk_document,
+            document_id=document.id,
+            chunk_size=chunk_size,
+            session=session,
         )
         return DocumentUploadResponse(
             id=document.id,

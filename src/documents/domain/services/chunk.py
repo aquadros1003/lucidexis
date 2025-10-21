@@ -1,6 +1,9 @@
 import logging
 import uuid
 
+from pydantic import ValidationError
+from semantic_text_splitter import TextSplitter
+
 from core.db import SessionDep
 from documents.domain.models.document import Document as DbDocument
 from documents.domain.models.document import DocumentChunk as DbDocumentChunk
@@ -13,30 +16,33 @@ def chunk_document(
     document_id: uuid.UUID,
     chunk_size: int,
     session: SessionDep,
-) -> list[DbDocumentChunk]:
+) -> None:
     logger.info(f"Chunking document_id: {document_id} with chunk_size: {chunk_size}")
     document = session.get(DbDocument, document_id)
     if not document:
         logger.error(f"Document with id {document_id} not found for chunking.")
-        return []
-    chunks = []
+        return
     try:
-        for i in range(0, 10):
-            chunk_content = f"Chunk {i} of document {document_id}"
-            chunk = DbDocumentChunk(
-                document_id=document_id,
-                chunk_index=i,
-                content=chunk_content,
+        with open(document.file_path, encoding="utf-8") as file:
+            content = file.read()
+        splitter = TextSplitter(capacity=chunk_size)
+        chunks = splitter.chunks(content)
+        for idx, chunk in enumerate(chunks):
+            logger.debug(f"Creating chunk {idx} for document_id: {document_id}")
+            db_chunk = DbDocumentChunk.model_validate(
+                {
+                    "document_id": document_id,
+                    "chunk_index": idx,
+                    "content": chunk,
+                }
             )
-            session.add(chunk)
-            chunks.append(chunk)
+            session.add(db_chunk)
         document.is_processed = True
-        session.add(document)
         session.commit()
         logger.info(
             f"Successfully chunked document_id: {document_id} into {len(chunks)} chunks."
         )
+    except ValidationError as ve:
+        logger.error(f"Chunk content validation error: {ve.errors()}")
     except Exception as e:
-        logger.error(f"Error chunking document_id: {document_id}: {e}", exc_info=True)
-        session.rollback()
-    return chunks
+        logger.error(f"Error while chunking document_id: {document_id}: {e}")

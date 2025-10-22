@@ -1,15 +1,11 @@
 import logging
 import uuid
-from datetime import datetime
-from pathlib import Path
 from typing import Any
 
-import aiofiles
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 import documents.domain.services.document as document_service
-from core.config import settings
 from core.db import SessionDep
 from documents.api.schemas.document import DocumentUploadResponse
 from documents.domain.services.chunk import chunk_document
@@ -30,14 +26,9 @@ async def upload_document(
     background_tasks: BackgroundTasks,
 ) -> Any:
     try:
-        out_file_path = Path(
-            f"{settings.DOCUMENTS_DIR}/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        out_file_path = await document_service.save_document_to_path(
+            file=await file.read()
         )
-        logger.info(f"Attempting to save document to: {out_file_path}")
-        async with aiofiles.open(out_file_path, "wb") as out_file:
-            content = await file.read()
-            await out_file.write(content)
-        logger.info(f"Document saved to: {out_file_path}")
         document = document_service.add_document(
             session=session,
             owner_id=current_user.id,

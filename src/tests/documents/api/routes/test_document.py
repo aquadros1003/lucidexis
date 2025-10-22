@@ -10,17 +10,21 @@ from tests.factories.user import UserFactory
 from tests.utils.user import user_authentication_headers
 
 
-def test_upload_document(client: TestClient, user_factory: UserFactory) -> None:
+def test_upload_document(
+    client: TestClient, user_factory: UserFactory, tmp_path: Path
+) -> None:
     user = user_factory.create()
     file_content = b"Sample document content"
     files = {"file": ("sample.txt", file_content, "text/plain")}
-    response = client.post(
-        f"{settings.API_V1_STR}/documents",
-        headers=user_authentication_headers(
-            client=client, email=user.email, password="password"
-        ),
-        files=files,
-    )
+    with patch("documents.domain.services.document.save_document_to_path") as mock_path:
+        mock_path.return_value = tmp_path / "20240101_000000"
+        response = client.post(
+            f"{settings.API_V1_STR}/documents",
+            headers=user_authentication_headers(
+                client=client, email=user.email, password="password"
+            ),
+            files=files,
+        )
     assert response.status_code == 200
     data = response.json()
     assert data["filename"] == "sample.txt"
@@ -50,12 +54,16 @@ def test_download_document(
 def test_upload_document_triggers_chunking(
     client: TestClient,
     user_factory: UserFactory,
+    tmp_path: Path,
 ) -> None:
     user = user_factory.create()
     file_content = b"Sample document content for chunking test"
     files = {"file": ("chunk_test.txt", file_content, "text/plain")}
-
-    with patch("documents.api.routes.document.chunk_document") as mock_chunk_document:
+    with (
+        patch("documents.domain.services.document.save_document_to_path") as mock_path,
+        patch("documents.api.routes.document.chunk_document") as mock_chunk_document,
+    ):
+        mock_path.return_value = tmp_path / "20240101_000000"
         response = client.post(
             f"{settings.API_V1_STR}/documents",
             headers=user_authentication_headers(

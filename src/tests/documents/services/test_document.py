@@ -28,13 +28,20 @@ def test_create_document(
 
 
 def test_get_document_by_id(
-    db: Session, user_factory: UserFactory, document_factory: DocumentFactory
+    db: Session,
+    tmp_path: Path,
+    user_factory: UserFactory,
+    document_factory: DocumentFactory,
 ) -> None:
     owner = user_factory.create()
     filename = "sample_doc.txt"
     content_type = "text/plain"
+    file_path = tmp_path / filename
     document = document_factory.create(
-        owner_id=owner.id, filename=filename, content_type=content_type
+        owner_id=owner.id,
+        filename=filename,
+        content_type=content_type,
+        file_path=str(file_path),
     )
     fetched_document = document_service.get_document_by_id(
         session=db, document_id=document.id

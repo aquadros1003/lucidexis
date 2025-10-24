@@ -20,7 +20,7 @@ def add_document(
     filename: str | None,
     content_type: str | None,
 ) -> DbDocument:
-    logger.info(f"Adding document for owner_id: {owner_id}, filename: {filename}")
+    logger.info(f"Adding document for {owner_id=}, {filename=}")
     db_obj = DbDocument.model_validate(
         {
             "filename": filename,
@@ -45,8 +45,8 @@ async def save_document_to_path(*, file: bytes) -> Path:
     out_file_path = Path(
         f"{settings.DOCUMENTS_DIR}/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     )
-    logger.info(f"Saving document to path: {out_file_path}")
+    logger.info(f"Saving document to path: {out_file_path=}")
     async with aiofiles.open(out_file_path, "wb") as out_file:
         await out_file.write(file)
-    logger.info(f"Document saved to path: {out_file_path}")
+    logger.info(f"Document saved to path: {out_file_path=}")
     return out_file_path

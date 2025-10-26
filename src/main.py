@@ -1,7 +1,10 @@
 import logging.config
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
+from sentence_transformers import SentenceTransformer
 from starlette.middleware.cors import CORSMiddleware
 
 from core.config import settings
@@ -17,10 +20,18 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator:
+    app.state.embedding_model = SentenceTransformer("intfloat/multilingual-e5-large")
+    yield
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
+    lifespan=lifespan,
 )
 
 if settings.all_cors_origins:

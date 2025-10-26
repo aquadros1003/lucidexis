@@ -1,20 +1,27 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
+from contextlib import asynccontextmanager
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pytest_factoryboy import register
 from sqlmodel import Session, SQLModel
 
 from core.db import engine
-from main import app
 from tests.factories.document import DocumentFactory
 from tests.factories.user import UserFactory
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
 
 
+@asynccontextmanager
+async def lifespan_override(app: FastAPI) -> AsyncGenerator:
+    app.state.embedding_model = None
+    yield
+
+
 @pytest.fixture(scope="session", autouse=True)
-def setup_database() -> Generator[None]:
+def setup_database() -> Generator:
     SQLModel.metadata.create_all(engine)
     yield
     SQLModel.metadata.drop_all(engine)
@@ -33,8 +40,11 @@ def db() -> Generator[Session]:
 
 @pytest.fixture
 def client() -> Generator[TestClient]:
-    with TestClient(app) as c:
-        yield c
+    from main import app
+
+    app.router.lifespan_context = lifespan_override
+    test_client = TestClient(app)
+    yield test_client
 
 
 @pytest.fixture

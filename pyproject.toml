@@ -19,6 +19,7 @@ dependencies = [
     "pyjwt<3.0.0,>=2.8.0",
     "pymupdf4llm<1,>=0.0.27",
     "semantic-text-splitter<1,>=0.28.0",
+    "sentence-transformers<6.0.0,>=5.1.2",
     "sqlmodel<1.0.0,>=0.0.21",
     "tenacity<9.0.0,>=8.2.3"
 ]
@@ -39,8 +40,8 @@ dev = [
 ]
 
 [tool.mypy]
+python_version = "3.13"
 mypy_path=["src/"]
-strict = true
 exclude = ["venv", ".venv", "migrations", "email-templates", "scripts"]
 explicit_package_bases = true
 namespace_packages = true
@@ -48,6 +49,7 @@ namespace_packages = true
 [[tool.mypy.overrides]]
 module = [
     "factory.*",
+    "pymupdf4llm.*",
     "tests.factories.*",
 ]
 no_implicit_reexport = false

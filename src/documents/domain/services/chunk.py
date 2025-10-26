@@ -1,5 +1,6 @@
 import logging
 import uuid
+from pathlib import Path
 
 from pydantic import ValidationError
 from semantic_text_splitter import TextSplitter
@@ -8,7 +9,6 @@ from core.db import SessionDep
 from documents.domain.models.document import Document as DbDocument
 from documents.domain.models.document import DocumentChunk as DbDocumentChunk
 from documents.domain.services.extractor import EXTRACTOR_MAP
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

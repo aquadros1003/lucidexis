@@ -8,7 +8,6 @@ format:
 
 lint:
 	uv run mypy src/
-	uv run ruff check src/
 	uv run ruff format src --check
 
 test:

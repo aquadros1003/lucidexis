@@ -10,6 +10,40 @@ from tests.factories.user import UserFactory
 from tests.utils.user import user_authentication_headers
 
 
+def test_list_documents(
+    client: TestClient, user_factory: UserFactory, document_factory: DocumentFactory
+) -> None:
+    user = user_factory.create()
+    document_factory.create_batch(3, owner=user)
+    response = client.get(
+        f"{settings.API_V1_STR}/documents",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 3
+    assert len(data["data"]) == 3
+
+
+def test_get_document(
+    client: TestClient, user_factory: UserFactory, document_factory: DocumentFactory
+) -> None:
+    user = user_factory.create()
+    document = document_factory.create(owner=user)
+    response = client.get(
+        f"{settings.API_V1_STR}/documents/{document.id}",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(document.id)
+    assert data["filename"] == document.filename
+
+
 def test_upload_document(
     client: TestClient, user_factory: UserFactory, tmp_path: Path
 ) -> None:
@@ -42,7 +76,7 @@ def test_download_document(
     document_path.write_bytes(b"Sample document content for download test")
     document = document_factory.create(owner=user, file_path=str(document_path))
     response = client.get(
-        f"{settings.API_V1_STR}/documents/{document.id}",
+        f"{settings.API_V1_STR}/documents/download/{document.id}",
         headers=user_authentication_headers(
             client=client, email=user.email, password="password"
         ),

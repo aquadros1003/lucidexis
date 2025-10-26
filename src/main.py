@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
+    docs_url=f"{settings.API_V1_STR}/docs",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
     lifespan=lifespan,

@@ -1,19 +1,77 @@
 import logging
 import uuid
-from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 import documents.domain.services.document as document_service
+from core.config import settings
 from core.db import SessionDep
-from documents.api.schemas.document import DocumentUploadResponse
+from documents.api.schemas.document import (
+    DocumentPublic,
+    DocumentsPublic,
+    DocumentUploadResponse,
+)
 from documents.domain.services.chunk import chunk_document
 from users.deps import CurrentUser
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 logger = logging.getLogger(__name__)
+
+
+@router.get("/", response_model=DocumentsPublic)
+async def documents(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    limit: int = 100,
+    offset: int = 0,
+) -> DocumentsPublic:
+    documents = document_service.get_owner_documents(
+        session=session, owner_id=current_user.id, limit=limit, offset=offset
+    )
+    return DocumentsPublic(
+        data=[
+            DocumentPublic(
+                id=document.id,
+                created_at=document.created_at,
+                filename=document.filename,
+                content_type=document.content_type,
+                is_processed=document.is_processed,
+                download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
+            )
+            for document in documents
+        ],
+        count=document_service.get_owner_documents_count(
+            session=session, owner_id=current_user.id
+        ),
+    )
+
+
+@router.get("/{document_id}", response_model=DocumentPublic)
+async def get_document(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    document_id: uuid.UUID,
+) -> DocumentPublic:
+    document = document_service.get_document_by_id(
+        session=session, document_id=document_id
+    )
+    if not document or document.owner_id != current_user.id:
+        logger.warning(
+            f"Document not found or access denied {document=}, {current_user=}"
+        )
+        raise HTTPException(status_code=404, detail="Document not found")
+    return DocumentPublic(
+        id=document.id,
+        created_at=document.created_at,
+        filename=document.filename,
+        content_type=document.content_type,
+        is_processed=document.is_processed,
+        download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
+    )
 
 
 @router.post("/", response_model=DocumentUploadResponse)
@@ -24,7 +82,7 @@ async def upload_document(
     file: UploadFile = File(...),
     chunk_size: int = 1024,
     background_tasks: BackgroundTasks,
-) -> Any:
+) -> DocumentUploadResponse:
     try:
         out_file_path = await document_service.save_document_to_path(
             file=await file.read()
@@ -52,7 +110,7 @@ async def upload_document(
         raise HTTPException(status_code=500, detail="Failed to upload document")
 
 
-@router.get("/{document_id}")
+@router.get("/download/{document_id}")
 def download_document(
     *,
     session: SessionDep,

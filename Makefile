@@ -17,8 +17,8 @@ test:
 	@docker-compose exec -T db psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS testdb;" || true
 	@docker-compose exec -T db psql -U postgres -d postgres -c "CREATE DATABASE testdb;" || true
 	uv run alembic -x db_url=postgresql+psycopg://postgres:password@localhost:5432/testdb upgrade head
-	uv run coverage run --source=src -m pytest
 	uv run coverage report --show-missing
+	uv run coverage run --source=src -m pytest
 
 prestart:
 	uv run alembic upgrade head

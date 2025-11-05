@@ -30,7 +30,6 @@ def test_chunk_document(
         chunk_size=chunk_size,
     )
     db.refresh(document)
-    assert document.is_processed is True
 
     chunks = db.exec(
         select(DbDocumentChunk).where(DbDocumentChunk.document_id == document.id)

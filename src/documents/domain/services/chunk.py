@@ -4,6 +4,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 from semantic_text_splitter import TextSplitter
+from sentence_transformers import SentenceTransformer
 
 from core.db import SessionDep
 from documents.domain.models.document import Document as DbDocument
@@ -40,10 +41,35 @@ def chunk_document(
                 }
             )
             session.add(db_chunk)
-        document.is_processed = True
         session.commit()
         logger.info(f"Successfully chunked {document_id=} into {len(chunks)} chunks.")
     except ValidationError as ve:
         logger.error(f"Chunk content validation error: {ve.errors()}")
     except Exception as e:
         logger.error(f"Error while chunking {document_id=}: {e}")
+
+
+def embed_document_chunks(
+    *, document_id: uuid.UUID, session: SessionDep, embedding_model: SentenceTransformer
+) -> None:
+    logger.info(f"Embedding chunks for document {document_id=}")
+    document: DbDocument | None = session.get(DbDocument, document_id)
+    if not document:
+        logger.error(f"Document {document_id=} not found for embedding.")
+        return
+    try:
+        embeddings = embedding_model.encode(
+            [chunk.content for chunk in document.chunks],
+            convert_to_numpy=True,
+            show_progress_bar=False,
+        )
+        for chunk, embedding in zip(document.chunks, embeddings, strict=True):
+            chunk.embedding = embedding
+            session.add(chunk)
+        document.is_processed = True
+        session.add(document)
+        session.commit()
+        logger.info(f"Successfully embedded chunks for {document_id=}.")
+    except Exception as e:
+        logger.error(f"Error while embedding chunks for {document_id=}: {e}")
+    logger.info(f"Enqueued embedding tasks for document {document_id=}")

@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
 import documents.domain.services.document as document_service
@@ -12,7 +12,7 @@ from documents.api.schemas.document import (
     DocumentsPublic,
     DocumentUploadResponse,
 )
-from documents.domain.services.chunk import chunk_document
+from documents.domain.services.chunk import chunk_document, embed_document_chunks
 from users.deps import CurrentUser
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -81,6 +81,7 @@ async def upload_document(
     current_user: CurrentUser,
     file: UploadFile = File(...),
     chunk_size: int = 1024,
+    request: Request,
     background_tasks: BackgroundTasks,
 ) -> DocumentUploadResponse:
     try:
@@ -100,6 +101,15 @@ async def upload_document(
             chunk_size=chunk_size,
             session=session,
         )
+        if not hasattr(request.app.state, "embedding_model"):
+            logger.error("Embedding model not found in app state")
+        else:
+            background_tasks.add_task(
+                embed_document_chunks,
+                document_id=document.id,
+                session=session,
+                embedding_model=request.app.state.embedding_model,
+            )
         return DocumentUploadResponse(
             id=document.id,
             filename=document.filename,

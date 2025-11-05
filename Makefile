@@ -11,14 +11,18 @@ lint:
 	uv run ruff format src --check
 
 test:
-	docker-compose up -d db
-	@echo "Waiting for database to be ready..."
-	@sleep 3
-	@docker-compose exec -T db psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS testdb;" || true
-	@docker-compose exec -T db psql -U postgres -d postgres -c "CREATE DATABASE testdb;" || true
+	@postgres_output=$$(docker compose up -d db 2>&1); \
+	if [[ $$postgres_output =~ Creating|Starting ]]; then \
+		echo "Waiting for database to start..."; \
+		sleep 5; \
+	fi
+	@postgres_container=$$(docker ps | grep db | cut -f1 -d ' ')
+	docker exec -i $$postgres_container psql -U postgres -c 'CREATE EXTENSION IF NOT EXISTS vector;' > /dev/null 2>&1 || true
+	docker exec -i $$postgres_container psql -U postgres -c 'create database testdb' > /dev/null 2>&1 || true
+	docker exec -i $$postgres_container psql -U postgres -d testdb -c 'CREATE EXTENSION IF NOT EXISTS vector;' > /dev/null 2>&1 || true
 	uv run alembic -x db_url=postgresql+psycopg://postgres:password@localhost:5432/testdb upgrade head
-	uv run coverage report --show-missing
 	uv run coverage run --source=src -m pytest
+	uv run coverage report --show-missing
 
 prestart:
 	uv run alembic upgrade head

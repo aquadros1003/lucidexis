@@ -50,6 +50,8 @@ def test_upload_document(
     user = user_factory.create()
     file_content = b"Sample document content"
     files = {"file": ("sample.txt", file_content, "text/plain")}
+    ## Mock the save_document_to_path function to control the file path
+    ## Patch background tasks if any
     with patch("documents.domain.services.document.save_document_to_path") as mock_path:
         mock_path.return_value = tmp_path / "20240101_000000"
         response = client.post(

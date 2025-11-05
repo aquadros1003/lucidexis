@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from pgvector.sqlalchemy import Vector
 from sqlmodel import (
     TIMESTAMP,
     Column,
@@ -82,6 +83,10 @@ class DocumentChunk(SQLModel, table=True):
 
     chunk_index: int
     content: str
+
+    embedding: list[float] | None = Field(
+        sa_column=Column(Vector(), nullable=True), default=None
+    )
 
     document_id: uuid.UUID = Field(foreign_key="document.id", index=True)
     document: "Document" = Relationship(back_populates="chunks")

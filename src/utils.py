@@ -12,7 +12,6 @@ from jwt.exceptions import InvalidTokenError
 from core import security
 from core.config import settings
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -43,6 +42,7 @@ def send_email(
         mail_from=(settings.EMAILS_FROM_NAME, settings.EMAILS_FROM_EMAIL),
     )
     smtp_options = {"host": settings.SMTP_HOST, "port": settings.SMTP_PORT}
+    logger.info(f"Preparing to send email to {email_to} via SMTP server {smtp_options['host']}:{smtp_options['port']}")
     if settings.SMTP_TLS:
         smtp_options["tls"] = True
     elif settings.SMTP_SSL:

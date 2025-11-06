@@ -158,6 +158,11 @@ class Settings(BaseSettings):
                 "handlers": ["default"],
                 "propagate": False,
             },
+            "utils": {
+                "level": "DEBUG",
+                "handlers": ["default"],
+                "propagate": False,
+            },
         },
     }
 

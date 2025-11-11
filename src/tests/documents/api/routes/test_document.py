@@ -59,6 +59,7 @@ def test_upload_document(
             headers=user_authentication_headers(
                 client=client, email=user.email, password="password"
             ),
+            data={"description": "Test document description"},
             files=files,
         )
     assert response.status_code == 200
@@ -95,6 +96,7 @@ def test_upload_document_triggers_chunking(
     user = user_factory.create()
     file_content = b"Sample document content for chunking test"
     files = {"file": ("chunk_test.txt", file_content, "text/plain")}
+    data_form = {"description": "Chunking test document description"}
     with (
         patch("documents.domain.services.document.save_document_to_path") as mock_path,
         patch("documents.api.routes.document.chunk_document") as mock_chunk_document,
@@ -106,6 +108,7 @@ def test_upload_document_triggers_chunking(
                 client=client, email=user.email, password="password"
             ),
             files=files,
+            data=data_form,
         )
 
     assert response.status_code == 200

@@ -18,16 +18,20 @@ def add_document(
     session: Session,
     owner_id: uuid.UUID,
     file_path: Path,
+    file_size: int,
     filename: str | None,
     content_type: str | None,
+    description: str | None = None,
 ) -> DbDocument:
     logger.info(f"Adding document for {owner_id=}, {filename=}")
     db_obj = DbDocument.model_validate(
         {
             "filename": filename,
+            "file_size": file_size,
             "content_type": content_type,
             "owner_id": owner_id,
             "file_path": str(file_path),
+            "description": description,
         }
     )
     session.add(db_obj)

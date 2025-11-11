@@ -20,8 +20,10 @@ def test_create_document(
         session=db,
         owner_id=owner.id,
         file_path=file_path,
+        file_size=2048,
         filename=filename,
         content_type=content_type,
+        description="Test document description",
     )
     assert document.filename == filename
     assert document.content_type == content_type

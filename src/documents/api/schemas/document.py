@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 class DocumentUpload(BaseModel):
     file: UploadFile
+    description: str
 
 
 class DocumentUploadResponse(BaseModel):
@@ -31,7 +32,9 @@ class DocumentPublic(BaseModel):
     id: UUID
     created_at: datetime
     filename: str
+    file_size: int
     content_type: str
+    description: str
     is_processed: bool
     download_url: str
 

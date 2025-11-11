@@ -1,7 +1,15 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import FileResponse
 
 import documents.domain.services.document as document_service
@@ -37,7 +45,9 @@ async def documents(
                 id=document.id,
                 created_at=document.created_at,
                 filename=document.filename,
+                file_size=document.file_size,
                 content_type=document.content_type,
+                description=document.description,
                 is_processed=document.is_processed,
                 download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
             )
@@ -68,8 +78,10 @@ async def get_document(
         id=document.id,
         created_at=document.created_at,
         filename=document.filename,
+        file_size=document.file_size,
         content_type=document.content_type,
         is_processed=document.is_processed,
+        description=document.description,
         download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
     )
 
@@ -80,6 +92,7 @@ async def upload_document(
     session: SessionDep,
     current_user: CurrentUser,
     file: UploadFile = File(...),
+    description: str = Form(...),
     chunk_size: int = 1024,
     request: Request,
     background_tasks: BackgroundTasks,
@@ -92,8 +105,10 @@ async def upload_document(
             session=session,
             owner_id=current_user.id,
             file_path=out_file_path,
+            file_size=len(file.file.read()),
             filename=file.filename,
             content_type=file.content_type,
+            description=description,
         )
         background_tasks.add_task(
             chunk_document,

@@ -15,4 +15,6 @@ class DocumentFactory(TypedSQLAFactory["Document"]):
     filename = factory.Faker("file_name", extension="pdf")
     content_type = "application/pdf"
     file_path = factory.Sequence(lambda n: f"/tmp/fake_path/document_{n}.pdf")
+    file_size = factory.Faker("random_int", min=1000, max=1000000)
     owner = factory.SubFactory(UserFactory)
+    description = factory.Faker("sentence", nb_words=6)

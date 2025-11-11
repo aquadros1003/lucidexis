@@ -40,8 +40,11 @@ class Document(SQLModel, table=True):
     )
 
     filename: str = Field(max_length=255)
+    file_size: int = Field(nullable=False)
     content_type: str = Field(max_length=100)
     file_path: str = Field(max_length=500)
+
+    description: str = Field(default="", max_length=1000)
 
     is_processed: bool = Field(default=False, nullable=False)
 

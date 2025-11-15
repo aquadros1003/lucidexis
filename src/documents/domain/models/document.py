@@ -47,6 +47,8 @@ class Document(SQLModel, table=True):
     description: str = Field(default="", max_length=1000)
 
     is_processed: bool = Field(default=False, nullable=False)
+    is_archived: bool = Field(default=False, nullable=False)
+    is_favorite: bool = Field(default=False, nullable=False)
 
     owner_id: uuid.UUID = Field(foreign_key="user.id", index=True)
     owner: "User" = Relationship(back_populates="documents")

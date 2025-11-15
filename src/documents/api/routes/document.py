@@ -18,7 +18,10 @@ from core.db import SessionDep
 from documents.api.schemas.document import (
     DocumentPublic,
     DocumentsPublic,
+    DocumentStats,
+    DocumentUpdate,
     DocumentUploadResponse,
+    OwnerPublic,
 )
 from documents.domain.services.chunk import chunk_document, embed_document_chunks
 from users.deps import CurrentUser
@@ -49,13 +52,54 @@ async def documents(
                 content_type=document.content_type,
                 description=document.description,
                 is_processed=document.is_processed,
+                is_archived=document.is_archived,
+                is_favorite=document.is_favorite,
                 download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
+                owner=OwnerPublic(
+                    id=document.owner.id,
+                    email=document.owner.email,
+                    full_name=document.owner.full_name,
+                ),
             )
             for document in documents
         ],
         count=document_service.get_owner_documents_count(
             session=session, owner_id=current_user.id
         ),
+    )
+
+
+@router.get("/stats", response_model=DocumentStats)
+async def get_documents_stats(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> DocumentStats:
+    stats = document_service.get_owner_documents_stats(
+        session=session, owner_id=current_user.id
+    )
+    return DocumentStats(**stats)
+
+
+@router.get("/download/{document_id}")
+def download_document(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    document_id: uuid.UUID,
+) -> FileResponse:
+    document = document_service.get_document_by_id(
+        session=session, document_id=document_id
+    )
+    if not document or document.owner_id != current_user.id:
+        logger.warning(
+            f"Document not found or access denied {document=}, {current_user=}"
+        )
+        raise HTTPException(status_code=404, detail="Document not found")
+    return FileResponse(
+        path=document.file_path,
+        media_type=document.content_type,
+        filename=document.filename,
     )
 
 
@@ -81,8 +125,15 @@ async def get_document(
         file_size=document.file_size,
         content_type=document.content_type,
         is_processed=document.is_processed,
+        is_archived=document.is_archived,
+        is_favorite=document.is_favorite,
         description=document.description,
         download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
+        owner=OwnerPublic(
+            id=document.owner.id,
+            email=document.owner.email,
+            full_name=document.owner.full_name,
+        ),
     )
 
 
@@ -105,7 +156,7 @@ async def upload_document(
             session=session,
             owner_id=current_user.id,
             file_path=out_file_path,
-            file_size=len(file.file.read()),
+            file_size=file.size or 0,
             filename=file.filename,
             content_type=file.content_type,
             description=description,
@@ -135,13 +186,14 @@ async def upload_document(
         raise HTTPException(status_code=500, detail="Failed to upload document")
 
 
-@router.get("/download/{document_id}")
-def download_document(
+@router.patch("/{document_id}", response_model=DocumentPublic)
+async def update_document(
     *,
     session: SessionDep,
     current_user: CurrentUser,
     document_id: uuid.UUID,
-) -> FileResponse:
+    document_update: DocumentUpdate,
+) -> DocumentPublic:
     document = document_service.get_document_by_id(
         session=session, document_id=document_id
     )
@@ -150,8 +202,53 @@ def download_document(
             f"Document not found or access denied {document=}, {current_user=}"
         )
         raise HTTPException(status_code=404, detail="Document not found")
-    return FileResponse(
-        path=document.file_path,
-        media_type=document.content_type,
-        filename=document.filename,
+    try:
+        updated_document = document_service.update_document(
+            session=session,
+            document=document,
+            description=document_update.description,
+            is_archived=document_update.is_archived,
+            is_favorite=document_update.is_favorite,
+        )
+        return DocumentPublic(
+            id=updated_document.id,
+            created_at=updated_document.created_at,
+            filename=updated_document.filename,
+            file_size=updated_document.file_size,
+            content_type=updated_document.content_type,
+            is_processed=updated_document.is_processed,
+            is_archived=updated_document.is_archived,
+            is_favorite=updated_document.is_favorite,
+            description=updated_document.description,
+            download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{updated_document.id}",
+            owner=OwnerPublic(
+                id=updated_document.owner.id,
+                email=updated_document.owner.email,
+                full_name=updated_document.owner.full_name,
+            ),
+        )
+    except Exception as e:
+        logger.error(f"Error updating document: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to update document")
+
+
+@router.delete("/{document_id}", status_code=204)
+async def delete_document(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    document_id: uuid.UUID,
+) -> None:
+    document = document_service.get_document_by_id(
+        session=session, document_id=document_id
     )
+    if not document or document.owner_id != current_user.id:
+        logger.warning(
+            f"Document not found or access denied {document=}, {current_user=}"
+        )
+        raise HTTPException(status_code=404, detail="Document not found")
+    try:
+        document_service.delete_document(session=session, document=document)
+    except Exception as e:
+        logger.error(f"Error deleting document: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to delete document")

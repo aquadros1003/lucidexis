@@ -42,6 +42,9 @@ def test_get_document(
     data = response.json()
     assert data["id"] == str(document.id)
     assert data["filename"] == document.filename
+    assert data["owner"]["id"] == str(user.id)
+    assert data["owner"]["email"] == user.email
+    assert data["owner"]["full_name"] == user.full_name
 
 
 def test_upload_document(
@@ -50,8 +53,6 @@ def test_upload_document(
     user = user_factory.create()
     file_content = b"Sample document content"
     files = {"file": ("sample.txt", file_content, "text/plain")}
-    ## Mock the save_document_to_path function to control the file path
-    ## Patch background tasks if any
     with patch("documents.domain.services.document.save_document_to_path") as mock_path:
         mock_path.return_value = tmp_path / "20240101_000000"
         response = client.post(
@@ -119,3 +120,69 @@ def test_upload_document_triggers_chunking(
     call_kwargs = mock_chunk_document.call_args.kwargs
     assert call_kwargs["document_id"] == document_id
     assert call_kwargs["chunk_size"] == 1024
+
+
+def test_get_document_stats(
+    client: TestClient,
+    user_factory: UserFactory,
+    document_factory: DocumentFactory,
+) -> None:
+    user = user_factory.create()
+    document_factory.create_batch(2, owner=user, is_archived=True)
+    document_factory.create_batch(3, owner=user, is_favorite=True)
+    document_factory.create_batch(5, owner=user)
+    response = client.get(
+        f"{settings.API_V1_STR}/documents/stats",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_documents"] == 10
+    assert data["archived_documents"] == 2
+    assert data["favorite_documents"] == 3
+
+
+def test_update_document(
+    client: TestClient,
+    user_factory: UserFactory,
+    document_factory: DocumentFactory,
+) -> None:
+    user = user_factory.create()
+    document = document_factory.create(
+        owner=user, description="Old description", is_archived=False, is_favorite=False
+    )
+    update_data = {
+        "description": "New description",
+        "is_archived": True,
+        "is_favorite": True,
+    }
+    response = client.patch(
+        f"{settings.API_V1_STR}/documents/{document.id}",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+        json=update_data,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["description"] == "New description"
+    assert data["is_archived"] is True
+    assert data["is_favorite"] is True
+
+
+def test_delete_document(
+    client: TestClient,
+    user_factory: UserFactory,
+    document_factory: DocumentFactory,
+) -> None:
+    user = user_factory.create()
+    document = document_factory.create(owner=user)
+    response = client.delete(
+        f"{settings.API_V1_STR}/documents/{document.id}",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 204

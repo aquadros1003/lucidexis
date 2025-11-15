@@ -16,6 +16,12 @@ class DocumentUploadResponse(BaseModel):
     is_processed: bool
 
 
+class DocumentUpdate(BaseModel):
+    description: str | None = None
+    is_archived: bool | None = None
+    is_favorite: bool | None = None
+
+
 class DocumentChunkResponse(BaseModel):
     id: UUID
     document_id: UUID
@@ -28,6 +34,12 @@ class DocumentChunkListResponse(BaseModel):
     count: int
 
 
+class OwnerPublic(BaseModel):
+    id: UUID
+    email: str
+    full_name: str | None
+
+
 class DocumentPublic(BaseModel):
     id: UUID
     created_at: datetime
@@ -36,9 +48,18 @@ class DocumentPublic(BaseModel):
     content_type: str
     description: str
     is_processed: bool
+    is_archived: bool
+    is_favorite: bool
     download_url: str
+    owner: OwnerPublic
 
 
 class DocumentsPublic(BaseModel):
     data: list[DocumentPublic]
     count: int
+
+
+class DocumentStats(BaseModel):
+    total_documents: int
+    archived_documents: int
+    favorite_documents: int

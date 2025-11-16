@@ -6,9 +6,10 @@ from pathlib import Path
 
 import aiofiles
 from sqlalchemy import Integer
-from sqlmodel import Session, cast, desc, func, select
+from sqlmodel import Session, cast, func, select
 
 from core.config import settings
+from documents.api.filters.document import DocumentFilter
 from documents.domain.models.document import Document as DbDocument
 
 logger = logging.getLogger(__name__)
@@ -85,26 +86,31 @@ def get_document_by_id(
 
 
 def get_owner_documents(
-    *, session: Session, owner_id: uuid.UUID, limit: int = 100, offset: int = 0
+    *,
+    session: Session,
+    owner_id: uuid.UUID,
+    filter: DocumentFilter,
+    limit: int,
+    offset: int,
 ) -> Sequence[DbDocument]:
-    statement = (
-        select(DbDocument)
-        .where(DbDocument.owner_id == owner_id)
-        .order_by(desc(DbDocument.created_at))
-        .limit(limit)
-        .offset(offset)
-    )
-    results = session.exec(statement)
+    query = select(DbDocument).where(DbDocument.owner_id == owner_id)
+    query = filter.filter(query)
+    query = filter.sort(query)
+    query = query.offset(offset).limit(limit)
+    results = session.exec(query)
     return results.all()
 
 
-def get_owner_documents_count(*, session: Session, owner_id: uuid.UUID) -> int:
-    statement = (
+def get_owner_documents_count(
+    *, session: Session, owner_id: uuid.UUID, filter: DocumentFilter
+) -> int:
+    query = (
         select(func.count())
         .select_from(DbDocument)
         .where(DbDocument.owner_id == owner_id)
     )
-    result = session.exec(statement)
+    query = filter.filter(query)
+    result = session.exec(query)
     return result.one()
 
 

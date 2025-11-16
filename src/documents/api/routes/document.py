@@ -11,10 +11,12 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.responses import FileResponse
+from fastapi_filter import FilterDepends
 
 import documents.domain.services.document as document_service
 from core.config import settings
 from core.db import SessionDep
+from documents.api.filters.document import DocumentFilter
 from documents.api.schemas.document import (
     DocumentPublic,
     DocumentsPublic,
@@ -36,11 +38,16 @@ async def documents(
     *,
     session: SessionDep,
     current_user: CurrentUser,
+    document_filter: DocumentFilter = FilterDepends(DocumentFilter),
     limit: int = 100,
     offset: int = 0,
 ) -> DocumentsPublic:
     documents = document_service.get_owner_documents(
-        session=session, owner_id=current_user.id, limit=limit, offset=offset
+        session=session,
+        owner_id=current_user.id,
+        filter=document_filter,
+        limit=limit,
+        offset=offset,
     )
     return DocumentsPublic(
         data=[
@@ -64,7 +71,7 @@ async def documents(
             for document in documents
         ],
         count=document_service.get_owner_documents_count(
-            session=session, owner_id=current_user.id
+            session=session, owner_id=current_user.id, filter=document_filter
         ),
     )
 

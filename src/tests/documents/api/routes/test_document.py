@@ -47,6 +47,26 @@ def test_get_document(
     assert data["owner"]["full_name"] == user.full_name
 
 
+def test_filter_documents_by_is_favorite(
+    client: TestClient, user_factory: UserFactory, document_factory: DocumentFactory
+) -> None:
+    user = user_factory.create()
+    document_factory.create_batch(2, owner=user, is_favorite=True)
+    document_factory.create_batch(3, owner=user, is_favorite=False)
+    response = client.get(
+        f"{settings.API_V1_STR}/documents?is_favorite=true",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 2
+    assert len(data["data"]) == 2
+    for document in data["data"]:
+        assert document["is_favorite"] is True
+
+
 def test_upload_document(
     client: TestClient, user_factory: UserFactory, tmp_path: Path
 ) -> None:

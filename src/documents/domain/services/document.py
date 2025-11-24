@@ -126,3 +126,9 @@ def get_owner_documents_stats(*, session: Session, owner_id: uuid.UUID) -> dict:
         "archived_documents": result[1],
         "favorite_documents": result[2],
     }
+
+
+def get_document_markdown_preview(*, document: DbDocument) -> str:
+    chunks = sorted(document.chunks, key=lambda c: c.chunk_index)
+    markdown_preview = "\n".join(chunk.content for chunk in chunks)
+    return markdown_preview

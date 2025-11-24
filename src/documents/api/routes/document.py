@@ -144,6 +144,25 @@ async def get_document(
     )
 
 
+@router.get("/{document_id}/preview/markdown", response_model=str)
+async def get_document_markdown_preview(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    document_id: uuid.UUID,
+) -> str:
+    document = document_service.get_document_by_id(
+        session=session, document_id=document_id
+    )
+    if not document or document.owner_id != current_user.id:
+        logger.warning(
+            f"Document not found or access denied {document=}, {current_user=}"
+        )
+        raise HTTPException(status_code=404, detail="Document not found")
+    markdown_preview = document_service.get_document_markdown_preview(document=document)
+    return markdown_preview
+
+
 @router.post("/", response_model=DocumentUploadResponse)
 async def upload_document(
     *,

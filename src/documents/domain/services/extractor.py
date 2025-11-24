@@ -1,11 +1,10 @@
-import csv
 import json
 import logging
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
 
+import pandas as pd
 import pymupdf4llm  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
@@ -27,7 +26,6 @@ class Extractor(ABC):
             with open(file_path, encoding=encoding) as file:
                 return file.read()
         except UnicodeDecodeError:
-            # Try with different encoding if utf-8 fails
             try:
                 with open(file_path, encoding="latin-1") as file:
                     return file.read()
@@ -46,9 +44,10 @@ class PDFExtractor(Extractor):
     def extract_text(file_path: Path) -> str:
         logger.info(f"Extracting text from PDF {file_path=}")
         try:
-            text: Any = pymupdf4llm.to_markdown(file_path)
+            text: str = pymupdf4llm.to_markdown(file_path, table_strategy="lines_strict")
+            text = text.replace("<br>", " ")
             logger.info(f"Successfully extracted text from PDF {file_path=}")
-            return str(text)
+            return text
         except Exception as e:
             logger.error(f"Error extracting text from PDF file {file_path=}: {e}")
             raise ExtractionError(f"PDF extraction failed for {file_path}: {e}")
@@ -115,7 +114,6 @@ class JSONExtractor(Extractor):
         try:
             json_content = Extractor._read_file(file_path)
             data = json.loads(json_content)
-            # Convert JSON to formatted string representation
             text = json.dumps(data, indent=2, ensure_ascii=False)
             logger.info(f"Successfully extracted text from JSON file: {file_path}")
             return text
@@ -137,25 +135,15 @@ class CSVExtractor(Extractor):
     def extract_text(file_path: Path) -> str:
         logger.info(f"Extracting text from CSV file: {file_path}")
         try:
-            csv_content = Extractor._read_file(file_path)
-            lines = csv_content.splitlines()
-            reader = csv.reader(lines)
-            rows = list(reader)
-
-            if not rows:
-                return ""
-            text_parts = []
-            header = rows[0]
-            text_parts.append(" | ".join(header))
-            text_parts.append(" | ".join(["---"] * len(header)))
-            for row in rows[1:]:
-                text_parts.append(" | ".join(row))
-            text = "\n".join(text_parts)
+            df = pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip')
+            df.fillna("", inplace=True)
+            text = df.to_markdown(index=False, tablefmt="github")
+            text = text.replace("\r", " ")
             logger.info(f"Successfully extracted text from CSV file: {file_path}")
             return text
-        except ExtractionError as e:
-            logger.error(f"Error extracting text from CSV file {file_path}: {e}")
-            raise
+        except pd.errors.EmptyDataError as e:
+            logger.error(f"Empty CSV file {file_path}: {e}")
+            raise ExtractionError(f"Empty CSV file {file_path}: {e}")
         except Exception as e:
             logger.error(f"Error processing CSV file {file_path}: {e}")
             raise ExtractionError(f"CSV extraction failed for {file_path}: {e}")

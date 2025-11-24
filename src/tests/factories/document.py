@@ -1,7 +1,7 @@
 import factory
 from pytest_factoryboy import register
 
-from documents.domain.models.document import Document
+from documents.domain.models.document import Document, DocumentChunk
 from tests.factories.base import TypedSQLAFactory
 from tests.factories.user import UserFactory
 
@@ -18,3 +18,14 @@ class DocumentFactory(TypedSQLAFactory["Document"]):
     file_size = factory.Faker("random_int", min=1000, max=1000000)
     owner = factory.SubFactory(UserFactory)
     description = factory.Faker("sentence", nb_words=6)
+
+
+@register
+class DocumentChunkFactory(TypedSQLAFactory["DocumentChunk"]):
+    class Meta:
+        model = DocumentChunk
+        sqlalchemy_session_persistence = "commit"
+
+    document = factory.SubFactory(DocumentFactory)
+    chunk_index = factory.Sequence(lambda n: n)
+    content = factory.Faker("paragraph", nb_sentences=3)

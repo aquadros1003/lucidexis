@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from fastapi.testclient import TestClient
@@ -73,7 +73,11 @@ def test_upload_document(
     user = user_factory.create()
     file_content = b"Sample document content"
     files = {"file": ("sample.txt", file_content, "text/plain")}
-    with patch("documents.domain.services.document.save_document_to_path") as mock_path:
+    with (
+        patch("documents.domain.services.document.save_document_to_path") as mock_path,
+        patch("documents.api.routes.document.chunk_document"),
+        patch("documents.api.routes.document.embed_document_chunks"),
+    ):
         mock_path.return_value = tmp_path / "20240101_000000"
         response = client.post(
             f"{settings.API_V1_STR}/documents",
@@ -230,5 +234,41 @@ def test_get_document_markdown_preview(
     )
     assert response.status_code == 200
     data = response.json()
-    expected_markdown = "This is the first chunk.\n\nThis is the second chunk."
+    expected_markdown = "This is the first chunk.\nThis is the second chunk."
     assert data == expected_markdown
+
+
+def test_get_document_predictions(
+    client: TestClient,
+    user_factory: UserFactory,
+    document_factory: DocumentFactory,
+    document_chunk_factory: DocumentChunkFactory,
+) -> None:
+    user = user_factory.create()
+    document = document_factory.create(owner=user)
+    document_chunk_factory.create(
+        document=document, chunk_index=0, content="The capital of France is Paris."
+    )
+    document_chunk_factory.create(
+        document=document, chunk_index=1, content="The capital of Germany is Berlin."
+    )
+    return_value = [(document, "The capital of France is Paris.")]
+    client.app.state.embedding_model = MagicMock()  # type: ignore
+
+    with patch(
+        "documents.domain.services.document.get_document_predictions",
+        return_value=return_value,
+    ):
+        response = client.post(
+            f"{settings.API_V1_STR}/documents/predict",
+            headers=user_authentication_headers(
+                client=client, email=user.email, password="password"
+            ),
+            json={"search_query": "What is the capital of France?"},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["predictions"]) == 1
+    prediction = data["predictions"][0]
+    assert prediction["document"]["id"] == str(document.id)
+    assert prediction["chunk_content"] == "The capital of France is Paris."

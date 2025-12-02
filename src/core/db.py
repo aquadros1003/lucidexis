@@ -7,7 +7,13 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from core.config import settings
 
-engine = create_engine(str(settings.SQLALCHEMY_DATABASE_URI))
+engine = create_engine(
+    str(settings.SQLALCHEMY_DATABASE_URI),
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+)
 
 Base = declarative_base(metadata=SQLModel.metadata)
 

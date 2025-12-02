@@ -29,13 +29,16 @@ def setup_database() -> Generator:
 
 @pytest.fixture(autouse=True)
 def db() -> Generator[Session]:
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         try:
             session.rollback()
             yield session
+            session.rollback()
         except Exception:
             session.rollback()
             raise
+        finally:
+            session.close()
 
 
 @pytest.fixture

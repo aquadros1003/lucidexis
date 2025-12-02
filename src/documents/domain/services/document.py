@@ -5,12 +5,14 @@ from datetime import datetime
 from pathlib import Path
 
 import aiofiles
+from sentence_transformers import SentenceTransformer
 from sqlalchemy import Integer
 from sqlmodel import Session, cast, func, select
 
 from core.config import settings
 from documents.api.filters.document import DocumentFilter
 from documents.domain.models.document import Document as DbDocument
+from documents.domain.models.document import DocumentChunk as DbDocumentChunk
 
 logger = logging.getLogger(__name__)
 
@@ -132,3 +134,23 @@ def get_document_markdown_preview(*, document: DbDocument) -> str:
     chunks = sorted(document.chunks, key=lambda c: c.chunk_index)
     markdown_preview = "\n".join(chunk.content for chunk in chunks)
     return markdown_preview
+
+
+def get_document_predictions(
+    *,
+    embedding_model: SentenceTransformer,
+    session: Session,
+    owner_id: uuid.UUID,
+    search_query: str,
+) -> list[tuple[DbDocument, str]]:
+    query_embedding = embedding_model.encode(search_query, convert_to_numpy=True)
+    statement = (
+        select(DbDocument, DbDocumentChunk.content)
+        .join(DbDocumentChunk)
+        .where(DbDocument.owner_id == owner_id, DbDocumentChunk.embedding is not None)
+        .order_by(DbDocumentChunk.embedding.cosine_distance(query_embedding))  # type: ignore
+        .limit(5)
+    )
+    results = session.exec(statement).all()
+    predictions = [(doc, content) for doc, content in results]
+    return predictions

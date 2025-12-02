@@ -18,6 +18,9 @@ from core.config import settings
 from core.db import SessionDep
 from documents.api.filters.document import DocumentFilter
 from documents.api.schemas.document import (
+    DocumentPrediction,
+    DocumentPredictionRequest,
+    DocumentPredictionResponse,
     DocumentPublic,
     DocumentsPublic,
     DocumentStats,
@@ -278,3 +281,53 @@ async def delete_document(
     except Exception as e:
         logger.error(f"Error deleting document: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to delete document")
+
+
+@router.post("/predict", response_model=DocumentPredictionResponse)
+async def predict_document_relevance(
+    *,
+    request: Request,
+    session: SessionDep,
+    current_user: CurrentUser,
+    prediction_request: DocumentPredictionRequest,
+) -> DocumentPredictionResponse:
+    try:
+        if not hasattr(request.app.state, "embedding_model"):
+            logger.error("Embedding model not found in app state")
+        predictions = document_service.get_document_predictions(
+            embedding_model=request.app.state.embedding_model,
+            session=session,
+            owner_id=current_user.id,
+            search_query=prediction_request.search_query,
+        )
+        response = DocumentPredictionResponse(
+            predictions=[
+                DocumentPrediction(
+                    document=DocumentPublic(
+                        id=document.id,
+                        created_at=document.created_at,
+                        filename=document.filename,
+                        file_size=document.file_size,
+                        content_type=document.content_type,
+                        is_processed=document.is_processed,
+                        is_archived=document.is_archived,
+                        is_favorite=document.is_favorite,
+                        description=document.description,
+                        download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
+                        owner=OwnerPublic(
+                            id=document.owner.id,
+                            email=document.owner.email,
+                            full_name=document.owner.full_name,
+                        ),
+                    ),
+                    chunk_content=content,
+                )
+                for document, content in predictions
+            ]
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error predicting document relevance: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Failed to predict document relevance"
+        )

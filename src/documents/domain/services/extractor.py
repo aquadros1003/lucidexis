@@ -44,7 +44,9 @@ class PDFExtractor(Extractor):
     def extract_text(file_path: Path) -> str:
         logger.info(f"Extracting text from PDF {file_path=}")
         try:
-            text: str = pymupdf4llm.to_markdown(file_path, table_strategy="lines_strict")
+            text: str = pymupdf4llm.to_markdown(
+                file_path, table_strategy="lines_strict"
+            )
             text = text.replace("<br>", " ")
             logger.info(f"Successfully extracted text from PDF {file_path=}")
             return text
@@ -135,7 +137,7 @@ class CSVExtractor(Extractor):
     def extract_text(file_path: Path) -> str:
         logger.info(f"Extracting text from CSV file: {file_path}")
         try:
-            df = pd.read_csv(file_path, encoding="utf-8", on_bad_lines='skip')
+            df = pd.read_csv(file_path, encoding="utf-8", on_bad_lines="skip")
             df.fillna("", inplace=True)
             text = df.to_markdown(index=False, tablefmt="github")
             text = text.replace("\r", " ")

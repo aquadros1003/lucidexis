@@ -63,3 +63,16 @@ class DocumentStats(BaseModel):
     total_documents: int
     archived_documents: int
     favorite_documents: int
+
+
+class DocumentPredictionRequest(BaseModel):
+    search_query: str
+
+
+class DocumentPrediction(BaseModel):
+    document: DocumentPublic
+    chunk_content: str
+
+
+class DocumentPredictionResponse(BaseModel):
+    predictions: list[DocumentPrediction]

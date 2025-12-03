@@ -72,6 +72,7 @@ class DocumentPredictionRequest(BaseModel):
 class DocumentPrediction(BaseModel):
     document: DocumentPublic
     chunk_content: str
+    accuracy: float
 
 
 class DocumentPredictionResponse(BaseModel):

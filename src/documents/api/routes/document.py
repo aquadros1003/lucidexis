@@ -5,7 +5,6 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     File,
-    Form,
     HTTPException,
     Request,
     UploadFile,
@@ -172,7 +171,7 @@ async def upload_document(
     session: SessionDep,
     current_user: CurrentUser,
     file: UploadFile = File(...),
-    description: str = Form(...),
+    description: str = "",
     chunk_size: int = 1024,
     request: Request,
     background_tasks: BackgroundTasks,
@@ -321,8 +320,9 @@ async def predict_document_relevance(
                         ),
                     ),
                     chunk_content=content,
+                    accuracy=round(accuracy, 2),
                 )
-                for document, content in predictions
+                for document, content, accuracy in predictions
             ]
         )
         return response

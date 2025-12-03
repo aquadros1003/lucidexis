@@ -16,6 +16,8 @@ from documents.domain.models.document import DocumentChunk as DbDocumentChunk
 
 logger = logging.getLogger(__name__)
 
+COSINE_SIMILARITY_THRESHOLD = 0.80
+
 
 def add_document(
     *,
@@ -142,15 +144,34 @@ def get_document_predictions(
     session: Session,
     owner_id: uuid.UUID,
     search_query: str,
-) -> list[tuple[DbDocument, str]]:
-    query_embedding = embedding_model.encode(search_query, convert_to_numpy=True)
+) -> list[tuple[DbDocument, str, float]]:
+    query_embedding = embedding_model.encode(
+        search_query, convert_to_numpy=True, show_progress_bar=False
+    )
     statement = (
-        select(DbDocument, DbDocumentChunk.content)
+        select(
+            DbDocument,
+            DbDocumentChunk.content,
+            (1 - DbDocumentChunk.embedding.cosine_distance(query_embedding)).label(  # type: ignore
+                "accuracy"
+            ),
+        )
         .join(DbDocumentChunk)
-        .where(DbDocument.owner_id == owner_id, DbDocumentChunk.embedding is not None)
-        .order_by(DbDocumentChunk.embedding.cosine_distance(query_embedding))  # type: ignore
+        .where(
+            DbDocument.owner_id == owner_id,
+            DbDocumentChunk.embedding is not None,
+            DbDocumentChunk.embedding.cosine_distance(query_embedding)  # type: ignore
+            < 1 - COSINE_SIMILARITY_THRESHOLD,
+        )
+        .distinct(DbDocument.id) # type: ignore
+        .order_by(
+            DbDocument.id, # type: ignore
+            DbDocumentChunk.embedding.cosine_distance(query_embedding),  # type: ignore
+        )
         .limit(5)
     )
     results = session.exec(statement).all()
-    predictions = [(doc, content) for doc, content in results]
+    predictions = [
+        (doc, content, float(accuracy)) for doc, content, accuracy in results
+    ]
     return predictions

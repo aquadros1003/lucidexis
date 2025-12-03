@@ -252,7 +252,7 @@ def test_get_document_predictions(
     document_chunk_factory.create(
         document=document, chunk_index=1, content="The capital of Germany is Berlin."
     )
-    return_value = [(document, "The capital of France is Paris.")]
+    return_value = [(document, "The capital of France is Paris.", 0.95)]
     client.app.state.embedding_model = MagicMock()  # type: ignore
 
     with patch(

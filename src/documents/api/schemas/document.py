@@ -1,25 +1,47 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import UploadFile
+from fastapi import Form
 from pydantic import BaseModel
+
+from documents.domain.models.document import DocumentCategory
 
 
 class DocumentUpload(BaseModel):
-    file: UploadFile
-    description: str
+    chunk_size: int = 1024
+    description: str = ""
+    category: DocumentCategory = DocumentCategory.TECHNICAL
+
+    @classmethod
+    def as_form(
+        cls,
+        chunk_size: int = Form(1024),
+        description: str = Form(""),
+        category: str = Form("technical"),
+    ) -> "DocumentUpload":
+        try:
+            category_enum = DocumentCategory[category]
+        except (KeyError, ValueError):
+            category_enum = DocumentCategory.TECHNICAL
+        return cls(
+            chunk_size=chunk_size,
+            description=description,
+            category=category_enum,
+        )
 
 
 class DocumentUploadResponse(BaseModel):
     id: UUID
     filename: str
     is_processed: bool
+    category: DocumentCategory
 
 
 class DocumentUpdate(BaseModel):
     description: str | None = None
     is_archived: bool | None = None
     is_favorite: bool | None = None
+    category: DocumentCategory | None = None
 
 
 class DocumentChunkResponse(BaseModel):
@@ -47,6 +69,7 @@ class DocumentPublic(BaseModel):
     file_size: int
     content_type: str
     description: str
+    category: DocumentCategory
     is_processed: bool
     is_archived: bool
     is_favorite: bool
@@ -63,6 +86,13 @@ class DocumentStats(BaseModel):
     total_documents: int
     archived_documents: int
     favorite_documents: int
+    technical_documents: int
+    marketing_documents: int
+    sales_documents: int
+    hr_documents: int
+    finance_documents: int
+    legal_documents: int
+    product_documents: int
 
 
 class DocumentPredictionRequest(BaseModel):

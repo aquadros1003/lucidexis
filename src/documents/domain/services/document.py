@@ -6,12 +6,13 @@ from pathlib import Path
 
 import aiofiles
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import Integer
+from sqlalchemy import Integer, case
 from sqlmodel import Session, cast, func, select
 
 from core.config import settings
 from documents.api.filters.document import DocumentFilter
 from documents.domain.models.document import Document as DbDocument
+from documents.domain.models.document import DocumentCategory
 from documents.domain.models.document import DocumentChunk as DbDocumentChunk
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ def add_document(
     owner_id: uuid.UUID,
     file_path: Path,
     file_size: int,
+    category: DocumentCategory,
     filename: str | None,
     content_type: str | None,
     description: str | None = None,
@@ -38,6 +40,7 @@ def add_document(
             "owner_id": owner_id,
             "file_path": str(file_path),
             "description": description,
+            "category": category,
         }
     )
     session.add(db_obj)
@@ -53,13 +56,17 @@ def update_document(
     description: str | None = None,
     is_archived: bool | None = None,
     is_favorite: bool | None = None,
+    category: DocumentCategory | None = None,
 ) -> DbDocument:
+    logger.info(f"Updating document {document.id=}, {document.filename=}")
     if description is not None:
         document.description = description
     if is_archived is not None:
         document.is_archived = is_archived
     if is_favorite is not None:
         document.is_favorite = is_favorite
+    if category is not None:
+        document.category = category
     session.add(document)
     session.commit()
     session.refresh(document)
@@ -119,17 +126,32 @@ def get_owner_documents_count(
 
 
 def get_owner_documents_stats(*, session: Session, owner_id: uuid.UUID) -> dict:
-    statement = select(
+    select_columns = [
         func.count().label("total_documents"),
         func.sum(cast(DbDocument.is_archived, Integer)).label("archived_documents"),
         func.sum(cast(DbDocument.is_favorite, Integer)).label("favorite_documents"),
-    ).where(DbDocument.owner_id == owner_id)
+    ]
+    for category in DocumentCategory:
+        select_columns.append(
+            func.sum(
+                case(
+                    (DbDocument.category == category, 1),  # type: ignore[arg-type]
+                    else_=0,
+                )
+            ).label(f"{category.name.lower()}_documents")
+        )
+    statement = select(*select_columns).where(DbDocument.owner_id == owner_id)
     result = session.exec(statement).one()
-    return {
-        "total_documents": result[0],
-        "archived_documents": result[1],
-        "favorite_documents": result[2],
+    result_dict = {
+        "total_documents": result.total_documents,  # type: ignore
+        "archived_documents": result.archived_documents,  # type: ignore
+        "favorite_documents": result.favorite_documents,  # type: ignore
     }
+    for category in DocumentCategory:
+        result_dict[f"{category.name.lower()}_documents"] = getattr(
+            result, f"{category.name.lower()}_documents"
+        )
+    return result_dict
 
 
 def get_document_markdown_preview(*, document: DbDocument) -> str:
@@ -163,9 +185,9 @@ def get_document_predictions(
             DbDocumentChunk.embedding.cosine_distance(query_embedding)  # type: ignore
             < 1 - COSINE_SIMILARITY_THRESHOLD,
         )
-        .distinct(DbDocument.id) # type: ignore
+        .distinct(DbDocument.id)  # type: ignore
         .order_by(
-            DbDocument.id, # type: ignore
+            DbDocument.id,  # type: ignore
             DbDocumentChunk.embedding.cosine_distance(query_embedding),  # type: ignore
         )
         .limit(5)

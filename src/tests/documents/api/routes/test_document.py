@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 
 from core.config import settings
+from documents.domain.models.document import DocumentCategory
 from tests.factories.document import DocumentChunkFactory, DocumentFactory
 from tests.factories.user import UserFactory
 from tests.utils.user import user_authentication_headers
@@ -93,6 +94,37 @@ def test_upload_document(
     assert data["is_processed"] is False
 
 
+def test_upload_document_with_category(
+    client: TestClient, user_factory: UserFactory, tmp_path: Path
+) -> None:
+    user = user_factory.create()
+    file_content = b"Sample document content"
+    files = {"file": ("sample.txt", file_content, "text/plain")}
+    with (
+        patch("documents.domain.services.document.save_document_to_path") as mock_path,
+        patch("documents.api.routes.document.chunk_document"),
+        patch("documents.api.routes.document.embed_document_chunks"),
+    ):
+        mock_path.return_value = tmp_path / "20240101_000000"
+        response = client.post(
+            f"{settings.API_V1_STR}/documents",
+            headers=user_authentication_headers(
+                client=client, email=user.email, password="password"
+            ),
+            data={
+                "description": "Test document description",
+                "category": "MARKETING",
+                "chunk_size": "1024",
+            },
+            files=files,
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["filename"] == "sample.txt"
+    assert data["is_processed"] is False
+    assert data["category"] == "marketing"
+
+
 def test_download_document(
     client: TestClient,
     user_factory: UserFactory,
@@ -133,7 +165,7 @@ def test_upload_document_triggers_chunking(
                 client=client, email=user.email, password="password"
             ),
             files=files,
-            data=data_form,
+            json=data_form,
         )
 
     assert response.status_code == 200
@@ -155,6 +187,9 @@ def test_get_document_stats(
     document_factory.create_batch(2, owner=user, is_archived=True)
     document_factory.create_batch(3, owner=user, is_favorite=True)
     document_factory.create_batch(5, owner=user)
+    document_factory.create_batch(5, owner=user, category=DocumentCategory.MARKETING)
+    document_factory.create_batch(3, owner=user, category=DocumentCategory.SALES)
+    document_factory.create_batch(7, owner=user, category=DocumentCategory.HR)
     response = client.get(
         f"{settings.API_V1_STR}/documents/stats",
         headers=user_authentication_headers(
@@ -163,9 +198,17 @@ def test_get_document_stats(
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["total_documents"] == 10
+    assert data["total_documents"] == 25
     assert data["archived_documents"] == 2
     assert data["favorite_documents"] == 3
+    # default category is TECHNICAL
+    assert data["technical_documents"] == 10
+    assert data["marketing_documents"] == 5
+    assert data["sales_documents"] == 3
+    assert data["hr_documents"] == 7
+    assert data["finance_documents"] == 0
+    assert data["legal_documents"] == 0
+    assert data["product_documents"] == 0
 
 
 def test_update_document(
@@ -181,6 +224,7 @@ def test_update_document(
         "description": "New description",
         "is_archived": True,
         "is_favorite": True,
+        "category": "hr",
     }
     response = client.patch(
         f"{settings.API_V1_STR}/documents/{document.id}",
@@ -194,6 +238,7 @@ def test_update_document(
     assert data["description"] == "New description"
     assert data["is_archived"] is True
     assert data["is_favorite"] is True
+    assert data["category"] == "hr"
 
 
 def test_delete_document(

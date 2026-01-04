@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -15,6 +16,16 @@ from sqlmodel import (
 
 if TYPE_CHECKING:
     from users.domain.models.user import User
+
+
+class DocumentCategory(enum.Enum):
+    TECHNICAL = "technical"
+    MARKETING = "marketing"
+    SALES = "sales"
+    HR = "hr"
+    FINANCE = "finance"
+    LEGAL = "legal"
+    PRODUCT = "product"
 
 
 class Document(SQLModel, table=True):
@@ -49,6 +60,10 @@ class Document(SQLModel, table=True):
     is_processed: bool = Field(default=False, nullable=False)
     is_archived: bool = Field(default=False, nullable=False)
     is_favorite: bool = Field(default=False, nullable=False)
+
+    category: DocumentCategory = Field(
+        default=DocumentCategory.TECHNICAL, nullable=False
+    )
 
     owner_id: uuid.UUID = Field(foreign_key="user.id", index=True)
     owner: "User" = Relationship(back_populates="documents")

@@ -4,6 +4,7 @@ import uuid
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Depends,
     File,
     HTTPException,
     Request,
@@ -24,6 +25,7 @@ from documents.api.schemas.document import (
     DocumentsPublic,
     DocumentStats,
     DocumentUpdate,
+    DocumentUpload,
     DocumentUploadResponse,
     OwnerPublic,
 )
@@ -60,6 +62,7 @@ async def documents(
                 file_size=document.file_size,
                 content_type=document.content_type,
                 description=document.description,
+                category=document.category,
                 is_processed=document.is_processed,
                 is_archived=document.is_archived,
                 is_favorite=document.is_favorite,
@@ -137,6 +140,7 @@ async def get_document(
         is_archived=document.is_archived,
         is_favorite=document.is_favorite,
         description=document.description,
+        category=document.category,
         download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
         owner=OwnerPublic(
             id=document.owner.id,
@@ -171,8 +175,7 @@ async def upload_document(
     session: SessionDep,
     current_user: CurrentUser,
     file: UploadFile = File(...),
-    description: str = "",
-    chunk_size: int = 1024,
+    document_upload: DocumentUpload = Depends(DocumentUpload.as_form),
     request: Request,
     background_tasks: BackgroundTasks,
 ) -> DocumentUploadResponse:
@@ -187,12 +190,13 @@ async def upload_document(
             file_size=file.size or 0,
             filename=file.filename,
             content_type=file.content_type,
-            description=description,
+            description=document_upload.description,
+            category=document_upload.category,
         )
         background_tasks.add_task(
             chunk_document,
             document_id=document.id,
-            chunk_size=chunk_size,
+            chunk_size=document_upload.chunk_size,
             session=session,
         )
         if not hasattr(request.app.state, "embedding_model"):
@@ -208,6 +212,7 @@ async def upload_document(
             id=document.id,
             filename=document.filename,
             is_processed=document.is_processed,
+            category=document.category,
         )
     except Exception as e:
         logger.error(f"Error uploading document: {e}", exc_info=True)
@@ -237,6 +242,7 @@ async def update_document(
             description=document_update.description,
             is_archived=document_update.is_archived,
             is_favorite=document_update.is_favorite,
+            category=document_update.category,
         )
         return DocumentPublic(
             id=updated_document.id,
@@ -248,6 +254,7 @@ async def update_document(
             is_archived=updated_document.is_archived,
             is_favorite=updated_document.is_favorite,
             description=updated_document.description,
+            category=updated_document.category,
             download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{updated_document.id}",
             owner=OwnerPublic(
                 id=updated_document.owner.id,
@@ -312,6 +319,7 @@ async def predict_document_relevance(
                         is_archived=document.is_archived,
                         is_favorite=document.is_favorite,
                         description=document.description,
+                        category=document.category,
                         download_url=f"{settings.BACKEND_HOST}/api/v1/documents/download/{document.id}",
                         owner=OwnerPublic(
                             id=document.owner.id,

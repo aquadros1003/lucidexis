@@ -5,6 +5,7 @@ import numpy as np
 from sqlmodel import Session
 
 import documents.domain.services.document as document_service
+from documents.domain.models.document import DocumentCategory
 from tests.factories.document import DocumentChunkFactory, DocumentFactory
 from tests.factories.user import UserFactory
 
@@ -24,11 +25,13 @@ def test_create_document(
         file_path=file_path,
         file_size=2048,
         filename=filename,
+        category=DocumentCategory.LEGAL,
         content_type=content_type,
         description="Test document description",
     )
     assert document.filename == filename
     assert document.content_type == content_type
+    assert document.category == DocumentCategory.LEGAL
 
 
 def test_get_document_by_id(

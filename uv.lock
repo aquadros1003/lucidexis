@@ -1594,15 +1594,15 @@ wheels = [
 
 [[package]]
 name = "pymupdf4llm"
-version = "0.2.5"
+version = "0.2.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pymupdf" },
     { name = "tabulate" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e7/da/170ea72610d3901deb08e9084de57db8336ec20a4d8f7d136aee220ccab8/pymupdf4llm-0.2.5.tar.gz", hash = "sha256:2afa0b280aa32a4763444e1957bdc7c0818e58a39785f260779c938eef7e0619", size = 64742, upload-time = "2025-11-30T18:01:48.893Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/ff/d2e856ff5db5fa57ebf13ae04de4da6c203f5fb17507c0dd21ffd0ae4a17/pymupdf4llm-0.2.8.tar.gz", hash = "sha256:c4f9815cff210cef45123e93ae3a6f802e0dc1d1ad4534a4a463c000aaec98fd", size = 66867, upload-time = "2026-01-04T16:38:30.015Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/15/39382f2456d33c4444507cbdfb7e39bdc46b5dc35f53b11b309c2724d693/pymupdf4llm-0.2.5-py3-none-any.whl", hash = "sha256:25a11ead00af5eebe7f0ffe160b19b311d3b82260aa9707432fd2f8356b57207", size = 66517, upload-time = "2025-11-30T18:01:51.584Z" },
+    { url = "https://files.pythonhosted.org/packages/58/d5/47e14346b6f57cbc7456cc24ded697b4037b399ff56ed12afccbd202361d/pymupdf4llm-0.2.8-py3-none-any.whl", hash = "sha256:e60587d151223fc9e118661a9c7bb04b04ae928187c201a14d60ac8a42963591", size = 68637, upload-time = "2026-01-04T16:38:32.412Z" },
 ]
 
 [[package]]

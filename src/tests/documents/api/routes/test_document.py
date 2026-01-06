@@ -28,6 +28,26 @@ def test_list_documents(
     assert len(data["data"]) == 3
 
 
+def test_list_documents_filtered_by_category(
+    client: TestClient, user_factory: UserFactory, document_factory: DocumentFactory
+) -> None:
+    user = user_factory.create()
+    document_factory.create_batch(2, owner=user, category=DocumentCategory.MARKETING)
+    document_factory.create_batch(3, owner=user, category=DocumentCategory.SALES)
+    response = client.get(
+        f"{settings.API_V1_STR}/documents?category=marketing",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["count"] == 2
+    assert len(data["data"]) == 2
+    for document in data["data"]:
+        assert document["category"] == "marketing"
+
+
 def test_get_document(
     client: TestClient, user_factory: UserFactory, document_factory: DocumentFactory
 ) -> None:
@@ -113,7 +133,7 @@ def test_upload_document_with_category(
             ),
             data={
                 "description": "Test document description",
-                "category": "MARKETING",
+                "category": "marketing",
                 "chunk_size": "1024",
             },
             files=files,

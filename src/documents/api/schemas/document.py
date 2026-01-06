@@ -19,14 +19,10 @@ class DocumentUpload(BaseModel):
         description: str = Form(""),
         category: str = Form("technical"),
     ) -> "DocumentUpload":
-        try:
-            category_enum = DocumentCategory[category]
-        except (KeyError, ValueError):
-            category_enum = DocumentCategory.TECHNICAL
         return cls(
             chunk_size=chunk_size,
             description=description,
-            category=category_enum,
+            category=category,
         )
 
 

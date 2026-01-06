@@ -17,7 +17,7 @@ class DocumentUpload(BaseModel):
         cls,
         chunk_size: int = Form(1024),
         description: str = Form(""),
-        category: str = Form("technical"),
+        category: DocumentCategory = Form("technical"),
     ) -> "DocumentUpload":
         return cls(
             chunk_size=chunk_size,

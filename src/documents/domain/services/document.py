@@ -1,13 +1,13 @@
 import logging
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import aiofiles
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import Integer, case
-from sqlmodel import Session, cast, func, select
+from sqlmodel import Session, cast, col, func, select
 
 from core.config import settings
 from documents.api.filters.document import DocumentFilter
@@ -81,7 +81,7 @@ def delete_document(*, session: Session, document: DbDocument) -> None:
 
 async def save_document_to_path(*, file: bytes) -> Path:
     out_file_path = Path(
-        f"{settings.DOCUMENTS_DIR}/{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        f"{settings.DOCUMENTS_DIR}/{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
     )
     logger.info(f"Saving document to path: {out_file_path=}")
     async with aiofiles.open(out_file_path, "wb") as out_file:
@@ -96,15 +96,29 @@ def get_document_by_id(
     return session.get(DbDocument, document_id)
 
 
+def visit_document(*, session: Session, document: DbDocument) -> None:
+    logger.info(f"Marking document as visited {document.id=}, {document.filename=}")
+    document.mark_visited()
+    session.add(document)
+    session.commit()
+    session.refresh(document)
+
+
 def get_owner_documents(
     *,
     session: Session,
     owner_id: uuid.UUID,
     filter: DocumentFilter,
+    recently_visited: bool | None = None,
     limit: int,
     offset: int,
 ) -> Sequence[DbDocument]:
     query = select(DbDocument).where(DbDocument.owner_id == owner_id)
+    if recently_visited:
+        query = query.where(
+            col(DbDocument.visited_at) is not None,
+            col(DbDocument.visited_at) > datetime.now(UTC) - timedelta(days=7),
+        ).order_by(col(DbDocument.visited_at).desc())
     query = filter.filter(query)
     query = filter.sort(query)
     query = query.offset(offset).limit(limit)
@@ -113,13 +127,22 @@ def get_owner_documents(
 
 
 def get_owner_documents_count(
-    *, session: Session, owner_id: uuid.UUID, filter: DocumentFilter
+    *,
+    session: Session,
+    owner_id: uuid.UUID,
+    filter: DocumentFilter,
+    recently_visited: bool | None = None,
 ) -> int:
     query = (
         select(func.count())
         .select_from(DbDocument)
         .where(DbDocument.owner_id == owner_id)
     )
+    if recently_visited:
+        query = query.where(
+            col(DbDocument.visited_at) is not None,
+            col(DbDocument.visited_at) > datetime.now(UTC) - timedelta(days=7),
+        )
     query = filter.filter(query)
     result = session.exec(query)
     return result.one()

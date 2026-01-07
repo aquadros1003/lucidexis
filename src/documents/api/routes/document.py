@@ -43,6 +43,7 @@ async def documents(
     session: SessionDep,
     current_user: CurrentUser,
     document_filter: DocumentFilter = FilterDepends(DocumentFilter),
+    recently_visited: bool | None = None,
     limit: int = 100,
     offset: int = 0,
 ) -> DocumentsPublic:
@@ -50,6 +51,7 @@ async def documents(
         session=session,
         owner_id=current_user.id,
         filter=document_filter,
+        recently_visited=recently_visited,
         limit=limit,
         offset=offset,
     )
@@ -76,7 +78,10 @@ async def documents(
             for document in documents
         ],
         count=document_service.get_owner_documents_count(
-            session=session, owner_id=current_user.id, filter=document_filter
+            session=session,
+            owner_id=current_user.id,
+            filter=document_filter,
+            recently_visited=recently_visited,
         ),
     )
 
@@ -130,6 +135,7 @@ async def get_document(
             f"Document not found or access denied {document=}, {current_user=}"
         )
         raise HTTPException(status_code=404, detail="Document not found")
+    document_service.visit_document(session=session, document=document)
     return DocumentPublic(
         id=document.id,
         created_at=document.created_at,

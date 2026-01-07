@@ -1,8 +1,10 @@
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
 from core.config import settings
 from documents.domain.models.document import DocumentCategory
@@ -49,7 +51,10 @@ def test_list_documents_filtered_by_category(
 
 
 def test_get_document(
-    client: TestClient, user_factory: UserFactory, document_factory: DocumentFactory
+    db: Session,
+    client: TestClient,
+    user_factory: UserFactory,
+    document_factory: DocumentFactory,
 ) -> None:
     user = user_factory.create()
     document = document_factory.create(owner=user)
@@ -59,6 +64,7 @@ def test_get_document(
             client=client, email=user.email, password="password"
         ),
     )
+    db.refresh(document)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == str(document.id)
@@ -66,6 +72,7 @@ def test_get_document(
     assert data["owner"]["id"] == str(user.id)
     assert data["owner"]["email"] == user.email
     assert data["owner"]["full_name"] == user.full_name
+    assert document.visited_at is not None
 
 
 def test_filter_documents_by_is_favorite(
@@ -86,6 +93,44 @@ def test_filter_documents_by_is_favorite(
     assert len(data["data"]) == 2
     for document in data["data"]:
         assert document["is_favorite"] is True
+
+
+def test_filter_documents_by_recently_visited(
+    client: TestClient, user_factory: UserFactory, document_factory: DocumentFactory
+) -> None:
+    user = user_factory.create()
+    doc1 = document_factory.create(
+        owner=user,
+        visited_at=datetime.now(UTC) - timedelta(days=3),
+        filename="recent1.txt",
+    )
+    doc2 = document_factory.create(
+        owner=user,
+        visited_at=datetime.now(UTC) - timedelta(days=5),
+        filename="recent2.txt",
+    )
+    document_factory.create_batch(
+        3,
+        owner=user,
+        visited_at=datetime.now(UTC) - timedelta(days=30),
+        filename="old1.txt",
+    )
+    document_factory.create_batch(2, owner=user, visited_at=None)
+
+    response = client.get(
+        f"{settings.API_V1_STR}/documents?recently_visited=true",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    print(data)
+    assert data["count"] == 2
+    assert len(data["data"]) == 2
+    returned_ids = {doc["id"] for doc in data["data"]}
+    assert str(doc1.id) in returned_ids
+    assert str(doc2.id) in returned_ids
 
 
 def test_upload_document(

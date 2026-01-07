@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from pgvector.sqlalchemy import Vector
@@ -33,7 +33,7 @@ class Document(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             TIMESTAMP(timezone=True),
             nullable=False,
@@ -41,7 +41,7 @@ class Document(SQLModel, table=True):
         ),
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             TIMESTAMP(timezone=True),
             nullable=False,
@@ -49,6 +49,7 @@ class Document(SQLModel, table=True):
             server_onupdate=FetchedValue(),
         ),
     )
+    visited_at: datetime | None = Field(default=None, nullable=True)
 
     filename: str = Field(max_length=255)
     file_size: int = Field(nullable=False)
@@ -78,13 +79,16 @@ class Document(SQLModel, table=True):
     def __str__(self) -> str:
         return f"Document(filename={self.filename}, owner_id={self.owner_id})"
 
+    def mark_visited(self) -> None:
+        self.visited_at = datetime.now(UTC)
+
 
 class DocumentChunk(SQLModel, table=True):
     __tablename__ = "document_chunk"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True, index=True)
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             TIMESTAMP(timezone=True),
             nullable=False,
@@ -92,7 +96,7 @@ class DocumentChunk(SQLModel, table=True):
         ),
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(
             TIMESTAMP(timezone=True),
             nullable=False,

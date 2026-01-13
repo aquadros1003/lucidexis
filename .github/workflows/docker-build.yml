@@ -9,6 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Maximize disk space
+        uses: easimon/maximize-build-space@v1
+        with:
+          remove-dotnet: "true"
+          remove-java: "true"
+          remove-python: "false"
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5

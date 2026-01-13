@@ -19,7 +19,6 @@ jobs:
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=latest
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

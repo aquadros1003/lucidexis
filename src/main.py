@@ -1,6 +1,8 @@
 import logging.config
+import tomllib
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
@@ -21,6 +23,16 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 logging.config.dictConfig(settings.LOGGING_CONFIG)
 
 
+def get_version() -> str:
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    if not pyproject.is_file():
+        return "0.1.0"
+    data = tomllib.loads(pyproject.read_text("utf-8"))
+    if "project" in data and "version" in data["project"]:
+        return data["project"]["version"]
+    return "0.1.0"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
     app.state.embedding_model = SentenceTransformer("intfloat/multilingual-e5-large")
@@ -29,6 +41,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
+    version=get_version(),
     docs_url=f"{settings.API_V1_STR}/docs",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,

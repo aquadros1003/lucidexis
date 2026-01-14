@@ -166,13 +166,13 @@ def get_owner_documents_stats(*, session: Session, owner_id: uuid.UUID) -> dict:
     statement = select(*select_columns).where(DbDocument.owner_id == owner_id)
     result = session.exec(statement).one()
     result_dict = {
-        "total_documents": result.total_documents,  # type: ignore
-        "archived_documents": result.archived_documents,  # type: ignore
-        "favorite_documents": result.favorite_documents,  # type: ignore
+        "total_documents": result.total_documents or 0,  # type: ignore
+        "archived_documents": result.archived_documents or 0,  # type: ignore
+        "favorite_documents": result.favorite_documents or 0,  # type: ignore
     }
     for category in DocumentCategory:
-        result_dict[f"{category.name.lower()}_documents"] = getattr(
-            result, f"{category.name.lower()}_documents"
+        result_dict[f"{category.name.lower()}_documents"] = (
+            getattr(result, f"{category.name.lower()}_documents") or 0
         )
     return result_dict
 

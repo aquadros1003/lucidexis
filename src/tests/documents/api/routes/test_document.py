@@ -276,6 +276,31 @@ def test_get_document_stats(
     assert data["product_documents"] == 0
 
 
+def test_get_document_stats_without_documents(
+    client: TestClient,
+    user_factory: UserFactory,
+) -> None:
+    user = user_factory.create()
+    response = client.get(
+        f"{settings.API_V1_STR}/documents/stats",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_documents"] == 0
+    assert data["archived_documents"] == 0
+    assert data["favorite_documents"] == 0
+    assert data["technical_documents"] == 0
+    assert data["marketing_documents"] == 0
+    assert data["sales_documents"] == 0
+    assert data["hr_documents"] == 0
+    assert data["finance_documents"] == 0
+    assert data["legal_documents"] == 0
+    assert data["product_documents"] == 0
+
+
 def test_update_document(
     client: TestClient,
     user_factory: UserFactory,

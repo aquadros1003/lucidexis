@@ -177,8 +177,11 @@ def get_owner_documents_stats(*, session: Session, owner_id: uuid.UUID) -> dict:
     return result_dict
 
 
-def get_document_markdown_preview(*, document: DbDocument) -> str:
+def get_document_markdown_preview(
+    *, document: DbDocument, chunk_limit: int | None = None
+) -> str:
     chunks = sorted(document.chunks, key=lambda c: c.chunk_index)
+    chunks = chunks[:chunk_limit] if chunk_limit is not None else chunks
     markdown_preview = "\n".join(chunk.content for chunk in chunks)
     return markdown_preview
 

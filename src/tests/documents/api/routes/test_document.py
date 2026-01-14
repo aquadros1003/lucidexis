@@ -373,6 +373,35 @@ def test_get_document_markdown_preview(
     assert data == expected_markdown
 
 
+def test_get_document_markdown_preview_with_chunk_limit(
+    client: TestClient,
+    user_factory: UserFactory,
+    document_factory: DocumentFactory,
+    document_chunk_factory: DocumentChunkFactory,
+) -> None:
+    user = user_factory.create()
+    document = document_factory.create(owner=user)
+    document_chunk_factory.create(
+        document=document, chunk_index=0, content="This is the first chunk."
+    )
+    document_chunk_factory.create(
+        document=document, chunk_index=1, content="This is the second chunk."
+    )
+    document_chunk_factory.create(
+        document=document, chunk_index=2, content="This is the third chunk."
+    )
+    response = client.get(
+        f"{settings.API_V1_STR}/documents/{document.id}/preview/markdown?chunk_limit=2",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+    )
+    assert response.status_code == 200
+    data = response.json()
+    expected_markdown = "This is the first chunk.\nThis is the second chunk."
+    assert data == expected_markdown
+
+
 def test_get_document_predictions(
     client: TestClient,
     user_factory: UserFactory,

@@ -162,6 +162,7 @@ async def get_document_markdown_preview(
     session: SessionDep,
     current_user: CurrentUser,
     document_id: uuid.UUID,
+    chunk_limit: int | None = None,
 ) -> str:
     document = document_service.get_document_by_id(
         session=session, document_id=document_id
@@ -171,7 +172,9 @@ async def get_document_markdown_preview(
             f"Document not found or access denied {document=}, {current_user=}"
         )
         raise HTTPException(status_code=404, detail="Document not found")
-    markdown_preview = document_service.get_document_markdown_preview(document=document)
+    markdown_preview = document_service.get_document_markdown_preview(
+        document=document, chunk_limit=chunk_limit
+    )
     return markdown_preview
 
 

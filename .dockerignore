@@ -8,4 +8,5 @@ app.egg-info
 .coverage
 htmlcov
 .venv
+.env
 postgres_data

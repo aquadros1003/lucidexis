@@ -222,4 +222,7 @@ def get_document_predictions(
     predictions = [
         (doc, content, float(accuracy)) for doc, content, accuracy in results
     ]
-    return predictions
+    ordered_predictions = sorted(
+        predictions, key=lambda x: x[2], reverse=True
+    )
+    return ordered_predictions

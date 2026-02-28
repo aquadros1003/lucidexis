@@ -22,7 +22,7 @@ test:
 	docker exec -i $$postgres_container psql -U postgres -d testdb -c 'CREATE EXTENSION IF NOT EXISTS vector;' > /dev/null 2>&1 || true
 	uv run alembic -x db_url=postgresql+psycopg://postgres:password@localhost:5432/testdb upgrade head
 	uv run coverage run --source=src -m pytest
-	uv run coverage report --show-missing
+	uv run coverage report
 
 prestart:
 	uv run alembic upgrade head

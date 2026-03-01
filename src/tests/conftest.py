@@ -9,6 +9,7 @@ from sqlmodel import Session, SQLModel
 
 from core.db import engine
 from tests.factories.document import DocumentChunkFactory, DocumentFactory
+from tests.factories.message import ConversationFactory, MessageFactory
 from tests.factories.user import UserFactory
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
@@ -42,12 +43,18 @@ def db() -> Generator[Session]:
 
 
 @pytest.fixture
-def client() -> Generator[TestClient]:
+def client(db: Session) -> Generator[TestClient]:
+    from core.db import get_db
     from main import app
 
+    def get_db_override() -> Generator[Session]:
+        yield db
+
+    app.dependency_overrides[get_db] = get_db_override
     app.router.lifespan_context = lifespan_override
     test_client = TestClient(app)
     yield test_client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -72,8 +79,12 @@ def set_session_for_factories(db: Session) -> None:
     DocumentFactory._meta.sqlalchemy_session = db  # type: ignore
     DocumentChunkFactory._meta.sqlalchemy_session = db  # type: ignore
     UserFactory._meta.sqlalchemy_session = db  # type: ignore
+    ConversationFactory._meta.sqlalchemy_session = db  # type: ignore
+    MessageFactory._meta.sqlalchemy_session = db  # type: ignore
 
 
 register(DocumentFactory)
 register(DocumentChunkFactory)
 register(UserFactory)
+register(ConversationFactory)
+register(MessageFactory)

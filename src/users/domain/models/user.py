@@ -14,6 +14,7 @@ from sqlmodel import (
 )
 
 if TYPE_CHECKING:
+    from chat.domain.models.message import Conversation
     from documents.domain.models.document import Document
 
 
@@ -45,6 +46,9 @@ class User(SQLModel, table=True):
     full_name: str | None = Field(default=None, max_length=255)
     hashed_password: str
 
+    conversations: list["Conversation"] = Relationship(
+        back_populates="user", cascade_delete=True
+    )
     documents: list["Document"] = Relationship(
         back_populates="owner", cascade_delete=True
     )

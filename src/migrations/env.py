@@ -15,6 +15,7 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 
+from chat.domain.models.message import Conversation, Message  # noqa
 from core.config import settings  # noqa
 from core.db import Base  # noqa
 from documents.domain.models.document import Document, DocumentChunk  # noqa

@@ -125,7 +125,6 @@ def test_filter_documents_by_recently_visited(
     )
     assert response.status_code == 200
     data = response.json()
-    print(data)
     assert data["count"] == 2
     assert len(data["data"]) == 2
     returned_ids = {doc["id"] for doc in data["data"]}

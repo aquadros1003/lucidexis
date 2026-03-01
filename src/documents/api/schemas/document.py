@@ -26,18 +26,18 @@ class DocumentUpload(BaseModel):
         )
 
 
-class DocumentUploadResponse(BaseModel):
-    id: UUID
-    filename: str
-    is_processed: bool
-    category: DocumentCategory
-
-
 class DocumentUpdate(BaseModel):
     description: str | None = None
     is_archived: bool | None = None
     is_favorite: bool | None = None
     category: DocumentCategory | None = None
+
+
+class DocumentUploadResponse(BaseModel):
+    id: UUID
+    filename: str
+    is_processed: bool
+    category: DocumentCategory
 
 
 class DocumentChunkResponse(BaseModel):

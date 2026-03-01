@@ -1,0 +1,27 @@
+from uuid import UUID
+
+from pydantic import BaseModel
+
+from chat.domain.models.message import MessageRole
+
+
+class MessageCreate(BaseModel):
+    content: str
+    conversation_id: UUID
+
+
+class MessagePublic(BaseModel):
+    id: UUID
+    content: str
+    role: MessageRole
+    conversation_id: UUID
+
+
+class MessageResponse(BaseModel):
+    type: str = "message"
+    message: MessagePublic
+
+
+class ErrorResponse(BaseModel):
+    type: str = "error"
+    error: str

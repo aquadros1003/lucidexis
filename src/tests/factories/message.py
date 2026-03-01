@@ -10,6 +10,7 @@ from tests.factories.user import UserFactory
 class ConversationFactory(TypedSQLAFactory["Conversation"]):
     class Meta:
         model = Conversation
+        sqlalchemy_session_persistence = "commit"
 
     user = factory.SubFactory(UserFactory)
 
@@ -18,6 +19,7 @@ class ConversationFactory(TypedSQLAFactory["Conversation"]):
 class MessageFactory(TypedSQLAFactory["Message"]):
     class Meta:
         model = Message
+        sqlalchemy_session_persistence = "commit"
 
     content = factory.Faker("text")
     role = factory.Iterator(MessageRole)

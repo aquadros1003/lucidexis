@@ -161,6 +161,11 @@ class Settings(BaseSettings):
                 "handlers": ["default"],
                 "propagate": False,
             },
+            "chat": {
+                "level": "DEBUG",
+                "handlers": ["default"],
+                "propagate": False,
+            },
         },
     }
 

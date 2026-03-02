@@ -66,7 +66,7 @@ async def websocket_chat(
                     ).model_dump(mode="json")
                 )
             openai_client = OpenAIClient(
-                api_key=user.openai_api_key, # type: ignore
+                api_key=user.openai_api_key,  # type: ignore
                 base_url=user.openai_api_url,  # type: ignore
             )
             while True:
@@ -90,15 +90,16 @@ async def websocket_chat(
                     ).model_dump(mode="json")
                 )
                 if not user.openai_api_key or not user.openai_api_url:
-                    continue
-                try:
-                    bot_content = await openai_client.create_chat_completion(
-                        model=user.llm_model,  # type: ignore
-                        messages=[user_message.content],
-                    )
-                except OpenAIClienException as e:
-                    logger.warning(f"OpenAI client error: {e}")
-                    bot_content = OPENAI_CLIENT_EXCEPTION_ASSITANT_MESSAGE
+                    bot_content = OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE
+                else:
+                    try:
+                        bot_content = await openai_client.create_chat_completion(
+                            model=user.llm_model,  # type: ignore
+                            messages=[user_message.content],
+                        )
+                    except OpenAIClienException as e:
+                        logger.warning(f"OpenAI client error: {e}")
+                        bot_content = OPENAI_CLIENT_EXCEPTION_ASSITANT_MESSAGE
                 bot_message = create_message(
                     session=session,
                     conversation_id=conversation_uuid,

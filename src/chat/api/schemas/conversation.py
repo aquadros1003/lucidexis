@@ -11,7 +11,7 @@ class ConversationPublic(SQLModel):
 
 
 class LatestConversationResponse(SQLModel):
-    conversation: ConversationPublic | None
+    conversation: ConversationPublic
 
 
 class StartConversationResponse(SQLModel):

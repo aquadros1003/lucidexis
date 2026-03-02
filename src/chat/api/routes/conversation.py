@@ -32,7 +32,9 @@ async def get_latest_conversation(
         session=session, user_id=current_user.id
     )
     if not conversation:
-        return LatestConversationResponse(conversation=None)
+        conversation = start_conversation_service(
+            session=session, user_id=current_user.id
+        )
     return LatestConversationResponse(
         conversation=ConversationPublic.model_validate(conversation)
     )

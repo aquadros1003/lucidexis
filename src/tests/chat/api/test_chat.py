@@ -1,15 +1,24 @@
+from unittest.mock import AsyncMock, patch
+
 from fastapi.testclient import TestClient
 
 from tests.factories.message import ConversationFactory
 from tests.factories.user import UserFactory
 
 
+@patch("chat.infractructure.openai_client.OpenAIClient")
 def test_websocket_chat(
+    mock_openai_client,
     client: TestClient,
     user_factory: UserFactory,
     conversation_factory: ConversationFactory,
 ) -> None:
-    user = user_factory.create()
+    mock_instance = AsyncMock()
+    mock_instance.create_chat_completion.return_value = "Mocked response"
+    mock_openai_client.return_value = mock_instance
+    user = user_factory.create(
+        openai_api_key="test_api_key", openai_api_url="https://api.openai.com/v1"
+    )
     conversation = conversation_factory.create(user=user)
     login_response = client.post(
         "/api/v1/login/access-token",

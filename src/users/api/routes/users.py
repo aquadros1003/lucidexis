@@ -11,7 +11,9 @@ from core.security import get_password_hash, verify_password
 from users.api.schemas.user import (
     Message,
     UpdatePassword,
+    UpdateUserModelPreferences,
     UserCreate,
+    UserModelPreferencesResponse,
     UserPublic,
     UserRegister,
     UsersPublic,
@@ -20,6 +22,9 @@ from users.api.schemas.user import (
 )
 from users.deps import CurrentUser, get_current_active_superuser
 from users.domain.models.user import User as DbUser
+from users.domain.services.user import (
+    update_user_model_preferences as update_user_model_preferences_service,
+)
 from utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -224,3 +229,24 @@ async def delete_user(
     session.delete(user)
     session.commit()
     return Message(message="User deleted successfully")
+
+
+@router.patch("/me/model-preferences", response_model=UserModelPreferencesResponse)
+async def update_user_model_preferences(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    preferences_in: UpdateUserModelPreferences,
+) -> Any:
+    db_user = update_user_model_preferences_service(
+        session=session,
+        db_user=current_user,
+        llm_model=preferences_in.llm_model,
+        openai_api_url=preferences_in.openai_api_url,
+        openai_api_key=preferences_in.openai_api_key,
+    )
+    return UserModelPreferencesResponse(
+        llm_model=db_user.llm_model,
+        openai_api_url=db_user.openai_api_url,
+        openai_api_key=db_user.openai_api_key,
+    )

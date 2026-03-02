@@ -10,6 +10,10 @@ class MessageCreate(BaseModel):
     conversation_id: UUID
 
 
+class MessagesPublic(BaseModel):
+    messages: list["MessagePublic"]
+
+
 class MessagePublic(BaseModel):
     id: UUID
     content: str

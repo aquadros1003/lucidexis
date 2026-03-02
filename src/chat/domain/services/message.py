@@ -12,6 +12,22 @@ class MessageException(Exception):
     pass
 
 
+def get_conversation_messages(
+    *,
+    session: Session,
+    user_id: uuid.UUID,
+    conversation_id: uuid.UUID,
+) -> list[Message]:
+    conversation = session.get(Conversation, conversation_id)
+    if not conversation or conversation.user_id != user_id:
+        raise MessageException(
+            f"Conversation {conversation_id} not found for user {user_id}"
+        )
+    if not conversation:
+        raise MessageException(f"Conversation {conversation_id} not found")
+    return conversation.messages
+
+
 def create_message(
     *,
     session: Session,

@@ -57,3 +57,15 @@ class Message(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=40)
+
+
+class UpdateUserModelPreferences(SQLModel):
+    llm_model: str | None = None
+    openai_api_url: str | None = None
+    openai_api_key: str | None = None
+
+
+class UserModelPreferencesResponse(SQLModel):
+    llm_model: str | None = None
+    openai_api_url: str | None = None
+    openai_api_key: str | None = None

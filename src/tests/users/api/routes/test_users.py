@@ -484,3 +484,34 @@ def test_delete_user_without_privileges(
     )
     assert r.status_code == 403
     assert r.json()["detail"] == "The user doesn't have enough privileges"
+
+
+def test_update_user_model_preferences(
+    client: TestClient, db: Session, user_factory: UserFactory
+) -> None:
+    user = user_factory.create(password="password")
+    data = {
+        "llm_model": "gpt-4",
+        "openai_api_url": "https://api.openai.com/v1",
+        "openai_api_key": "sk-1234567890abcdef",
+    }
+    r = client.patch(
+        f"{settings.API_V1_STR}/users/me/model-preferences",
+        headers=user_authentication_headers(
+            client=client, email=user.email, password="password"
+        ),
+        json=data,
+    )
+    assert r.status_code == 200
+    updated_user = r.json()
+    assert updated_user["llm_model"] == "gpt-4"
+    assert updated_user["openai_api_url"] == "https://api.openai.com/v1"
+    assert updated_user["openai_api_key"] == "sk-1234567890abcdef"
+
+    user_query = select(DbUser).where(DbUser.email == user.email)
+    user_db = db.exec(user_query).first()
+    db.refresh(user_db)
+    assert user_db
+    assert user_db.llm_model == "gpt-4"
+    assert user_db.openai_api_url == "https://api.openai.com/v1"
+    assert user_db.openai_api_key == "sk-1234567890abcdef"

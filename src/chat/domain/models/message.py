@@ -44,7 +44,9 @@ class Conversation(SQLModel, table=True):
     user: "User" = Relationship(back_populates="conversations")
 
     messages: list["Message"] = Relationship(
-        back_populates="conversation", cascade_delete=True
+        back_populates="conversation",
+        cascade_delete=True,
+        sa_relationship_kwargs={"order_by": "Message.created_at.asc()"},
     )
 
     def __repr__(self) -> str:

@@ -56,3 +56,22 @@ def authenticate(*, session: Session, email: str, password: str) -> DbUser | Non
     if not verify_password(password, db_user.hashed_password):
         return None
     return db_user
+
+
+def update_user_model_preferences(
+    *,
+    session: Session,
+    db_user: DbUser,
+    llm_model: str | None = None,
+    openai_api_url: str | None = None,
+    openai_api_key: str | None = None,
+) -> DbUser:
+    update_data = {}
+    update_data["llm_model"] = llm_model
+    update_data["openai_api_url"] = openai_api_url
+    update_data["openai_api_key"] = openai_api_key
+    db_user.sqlmodel_update(update_data)
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return db_user

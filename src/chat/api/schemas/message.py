@@ -19,6 +19,7 @@ class MessagePublic(BaseModel):
     content: str
     role: MessageRole
     conversation_id: UUID
+    additional_data: dict | None = None
 
 
 class MessageResponse(BaseModel):

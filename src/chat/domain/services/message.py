@@ -34,6 +34,7 @@ def create_message(
     conversation_id: uuid.UUID,
     content: str,
     role: MessageRole,
+    additional_data: dict | None = None,
 ) -> Message:
     logger.info(f"Creating message in conversation {conversation_id}")
     conversation = session.get(Conversation, conversation_id)
@@ -43,6 +44,7 @@ def create_message(
         content=content,
         role=role,
         conversation_id=conversation_id,
+        additional_data=additional_data,
     )
     session.add(db_message)
     session.commit()

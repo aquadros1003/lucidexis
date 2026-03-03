@@ -11,7 +11,9 @@ from chat.domain.services.message import (
     create_message,
 )
 from chat.infractructure.openai_client import OpenAIClienException, OpenAIClient
+from core.config import settings
 from core.db import get_db
+from documents.domain.services.document import get_document_predictions
 from users.deps import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,17 @@ OPENAI_CLIENT_EXCEPTION_ASSITANT_MESSAGE = (
     "Sorry, I'm having trouble connecting to the OpenAI service right now. "
     "Please try again later or check your OpenAI API configuration."
 )
+
+SYSTEM_PROMPT = """
+    Jesteś LuciAI – zaawansowanym asystentem AI zintegrowanym z platformą Lucidexis.
+    Twoim zadaniem jest wspierać użytkowników w zarządzaniu bazą wiedzy, dokumentami,
+    wyszukiwaniu semantycznym oraz automatyzacji procesów związanych z wiedzą organizacyjną.
+    Odpowiadaj wyłącznie na bazie informacji podanych poniżej, nie zgaduj ani nie dodawaj własnych informacji.
+    Pamiętaj, że możesz używać struktury markdown do formatowania odpowiedzi, w tym nagłówków, list, pogrubienia i kursywy.
+    Poniżej znajduje się lista dokumentów, które mogą być pomocne w odpowiedzi na pytania użytkownika. Każdy dokument ma swoją kategorię, która może wskazywać na
+    jego przeznaczenie lub tematykę. Użyj tych informacji, aby dostarczyć najbardziej trafną i pomocną odpowiedź.
+     %s
+"""
 
 
 @websocket_router.websocket("/ws/{conversation_id}")
@@ -93,9 +106,23 @@ async def websocket_chat(
                     bot_content = OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE
                 else:
                     try:
+                        document_predictions = get_document_predictions(
+                            embedding_model=websocket.app.state.embedding_model,
+                            session=session,
+                            owner_id=user.id,
+                            search_query=user_message.content,
+                        )
                         bot_content = await openai_client.create_chat_completion(
                             model=user.llm_model,  # type: ignore
                             messages=[user_message.content],
+                            system_prompt=SYSTEM_PROMPT
+                            % (
+                                "\n".join(
+                                    f"Document: {doc.filename}, Category: {doc.category.name}"
+                                    f"\n  {content}"
+                                    for doc, content, _ in document_predictions
+                                )
+                            ),
                         )
                     except OpenAIClienException as e:
                         logger.warning(f"OpenAI client error: {e}")
@@ -105,6 +132,18 @@ async def websocket_chat(
                     conversation_id=conversation_uuid,
                     content=bot_content,
                     role=MessageRole.ASSISTANT,
+                    additional_data={
+                        "files": [
+                            {
+                                "id": str(doc.id),
+                                "filename": doc.filename,
+                                "file_size": doc.file_size,
+                                "content_type": doc.content_type,
+                                "download_url": f"{settings.BACKEND_HOST}/api/v1/documents/download/{doc.id}",
+                            }
+                            for doc, _, _ in document_predictions
+                        ]
+                    },
                 )
                 await websocket.send_json(
                     MessageResponse(
@@ -113,6 +152,7 @@ async def websocket_chat(
                             content=bot_message.content,
                             role=bot_message.role,
                             conversation_id=bot_message.conversation_id,
+                            additional_data=bot_message.additional_data,
                         )
                     ).model_dump(mode="json")
                 )

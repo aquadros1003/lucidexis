@@ -36,6 +36,7 @@ async def get_messages(
                 content=message.content,
                 role=message.role,
                 conversation_id=message.conversation_id,
+                additional_data=message.additional_data,
             )
             for message in messages
         ]

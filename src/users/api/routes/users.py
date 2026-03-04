@@ -83,15 +83,6 @@ async def update_user_me(
     """
     Update own user.
     """
-
-    if user_in.email:
-        existing_user = user_service.get_user_by_email(
-            session=session, email=user_in.email
-        )
-        if existing_user and existing_user.id != current_user.id:
-            raise HTTPException(
-                status_code=409, detail="User with this email already exists"
-            )
     user_data = user_in.model_dump(exclude_unset=True)
     current_user.sqlmodel_update(user_data)
     session.add(current_user)
@@ -231,6 +222,27 @@ async def delete_user(
     return Message(message="User deleted successfully")
 
 
+@router.get("/me/model-preferences", response_model=UserModelPreferencesResponse)
+async def get_user_model_preferences(
+    current_user: CurrentUser,
+) -> Any:
+    """
+    Get current user's LLM model preferences.
+    """
+    print(
+        current_user.llm_model,
+        current_user.openai_api_url,
+        current_user.openai_api_key,
+        current_user.openai_system_prompt,
+    )
+    return UserModelPreferencesResponse(
+        llm_model=current_user.llm_model,
+        openai_api_url=current_user.openai_api_url,
+        openai_api_key=current_user.openai_api_key,
+        openai_system_prompt=current_user.openai_system_prompt,
+    )
+
+
 @router.patch("/me/model-preferences", response_model=UserModelPreferencesResponse)
 async def update_user_model_preferences(
     *,
@@ -244,9 +256,11 @@ async def update_user_model_preferences(
         llm_model=preferences_in.llm_model,
         openai_api_url=preferences_in.openai_api_url,
         openai_api_key=preferences_in.openai_api_key,
+        openai_system_prompt=preferences_in.openai_system_prompt,
     )
     return UserModelPreferencesResponse(
         llm_model=db_user.llm_model,
         openai_api_url=db_user.openai_api_url,
         openai_api_key=db_user.openai_api_key,
+        openai_system_prompt=db_user.openai_system_prompt,
     )

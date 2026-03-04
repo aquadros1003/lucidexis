@@ -167,13 +167,12 @@ def test_retrieve_users(client: TestClient, user_factory: UserFactory) -> None:
         assert "email" in item
 
 
-def test_update_user_me(
+def test_update_user_me_full_name(
     client: TestClient, db: Session, user_factory: UserFactory
 ) -> None:
     user = user_factory.create(password="password")
     full_name = "Updated Name"
-    email = random_email()
-    data = {"full_name": full_name, "email": email}
+    data = {"full_name": full_name}
     r = client.patch(
         f"{settings.API_V1_STR}/users/me",
         headers=user_authentication_headers(
@@ -183,14 +182,12 @@ def test_update_user_me(
     )
     assert r.status_code == 200
     updated_user = r.json()
-    assert updated_user["email"] == email
     assert updated_user["full_name"] == full_name
 
-    user_query = select(DbUser).where(DbUser.email == email)
+    user_query = select(DbUser).where(DbUser.full_name == full_name)
     user_db = db.exec(user_query).first()
     db.refresh(user_db)
     assert user_db
-    assert user_db.email == email
     assert user_db.full_name == full_name
 
 
@@ -240,21 +237,27 @@ def test_update_password_me_incorrect_password(
     assert updated_user["detail"] == "Incorrect password"
 
 
-def test_update_user_me_email_exists(
-    client: TestClient, normal_user_token_headers: dict[str, str], db: Session
-) -> None:
+def test_update_user_me_locale(client: TestClient, db: Session) -> None:
     username = random_email()
     password = random_lower_string()
-    user = user_service.create_user(session=db, email=username, password=password)
+    user = user_service.create_user(
+        session=db,
+        email=username,
+        password=password,
+        locale="en_US",
+    )
 
-    data = {"email": user.email}
+    data = {"locale": "pl_PL"}
     r = client.patch(
         f"{settings.API_V1_STR}/users/me",
-        headers=normal_user_token_headers,
+        headers=user_authentication_headers(
+            client=client, email=user.email, password=password
+        ),
         json=data,
     )
-    assert r.status_code == 409
-    assert r.json()["detail"] == "User with this email already exists"
+    assert r.status_code == 200
+    updated_user = r.json()
+    assert updated_user["locale"] == "pl_PL"
 
 
 def test_update_password_me_same_password_error(
@@ -494,6 +497,7 @@ def test_update_user_model_preferences(
         "llm_model": "gpt-4",
         "openai_api_url": "https://api.openai.com/v1",
         "openai_api_key": "sk-1234567890abcdef",
+        "openai_system_prompt": "You are a helpful assistant.",
     }
     r = client.patch(
         f"{settings.API_V1_STR}/users/me/model-preferences",
@@ -507,6 +511,7 @@ def test_update_user_model_preferences(
     assert updated_user["llm_model"] == "gpt-4"
     assert updated_user["openai_api_url"] == "https://api.openai.com/v1"
     assert updated_user["openai_api_key"] == "sk-1234567890abcdef"
+    assert updated_user["openai_system_prompt"] == "You are a helpful assistant."
 
     user_query = select(DbUser).where(DbUser.email == user.email)
     user_db = db.exec(user_query).first()
@@ -515,3 +520,4 @@ def test_update_user_model_preferences(
     assert user_db.llm_model == "gpt-4"
     assert user_db.openai_api_url == "https://api.openai.com/v1"
     assert user_db.openai_api_key == "sk-1234567890abcdef"
+    assert user_db.openai_system_prompt == "You are a helpful assistant."

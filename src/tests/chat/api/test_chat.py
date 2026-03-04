@@ -17,7 +17,9 @@ def test_websocket_chat(
     mock_instance.create_chat_completion.return_value = "Mocked response"
     mock_openai_client.return_value = mock_instance
     user = user_factory.create(
-        openai_api_key="test_api_key", openai_api_url="https://api.openai.com/v1"
+        openai_api_key="test_api_key",
+        openai_api_url="https://api.openai.com/v1",
+        llm_model="gpt-3.5-turbo",
     )
     conversation = conversation_factory.create(user=user)
     login_response = client.post(

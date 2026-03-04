@@ -45,11 +45,13 @@ class User(SQLModel, table=True):
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
     hashed_password: str
+    locale: str = Field(default="pl_PL", max_length=5)
 
     # LLM model preferences
     llm_model: str | None = None
     openai_api_url: str | None = None
     openai_api_key: str | None = None
+    openai_system_prompt: str | None = None
 
     conversations: list["Conversation"] = Relationship(
         back_populates="user", cascade_delete=True

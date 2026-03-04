@@ -10,6 +10,7 @@ class UserBase(SQLModel):
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
+    locale: str = Field(default="pl_PL", max_length=5)
 
 
 # Properties to receive via API on creation
@@ -31,7 +32,7 @@ class UserUpdate(UserBase):
 
 class UserUpdateMe(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
-    email: EmailStr | None = Field(default=None, max_length=255)
+    locale: str = Field(default="pl_PL", max_length=5)
 
 
 class UpdatePassword(SQLModel):
@@ -39,7 +40,6 @@ class UpdatePassword(SQLModel):
     new_password: str = Field(min_length=8, max_length=40)
 
 
-# Properties to return via API, id is always required
 class UserPublic(UserBase):
     id: uuid.UUID
 
@@ -63,9 +63,11 @@ class UpdateUserModelPreferences(SQLModel):
     llm_model: str | None = None
     openai_api_url: str | None = None
     openai_api_key: str | None = None
+    openai_system_prompt: str | None = None
 
 
 class UserModelPreferencesResponse(SQLModel):
     llm_model: str | None = None
     openai_api_url: str | None = None
     openai_api_key: str | None = None
+    openai_system_prompt: str | None = None

@@ -13,6 +13,7 @@ def create_user(
     full_name: str | None = None,
     is_active: bool = True,
     is_superuser: bool = False,
+    locale: str = "pl_PL",
 ) -> DbUser:
     db_obj = DbUser.model_validate(
         {
@@ -21,6 +22,7 @@ def create_user(
             "hashed_password": get_password_hash(password),
             "full_name": full_name,
             "is_superuser": is_superuser,
+            "locale": locale,
         }
     )
     session.add(db_obj)
@@ -65,11 +67,13 @@ def update_user_model_preferences(
     llm_model: str | None = None,
     openai_api_url: str | None = None,
     openai_api_key: str | None = None,
+    openai_system_prompt: str | None = None,
 ) -> DbUser:
     update_data = {}
     update_data["llm_model"] = llm_model
     update_data["openai_api_url"] = openai_api_url
     update_data["openai_api_key"] = openai_api_key
+    update_data["openai_system_prompt"] = openai_system_prompt
     db_user.sqlmodel_update(update_data)
     session.add(db_user)
     session.commit()

@@ -17,3 +17,4 @@ class UserFactory(TypedSQLAFactory["User"]):
     is_active = True
     is_superuser = False
     full_name = factory.Faker("name")
+    locale = "pl_PL"

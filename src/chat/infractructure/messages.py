@@ -27,6 +27,8 @@ SYSTEM_PROMPT_PL = """
     Odpowiadaj wyłącznie na bazie informacji podanych poniżej, nie zgaduj ani nie dodawaj własnych informacji.
     Odpowiadaj wyłącznie w języku odpowiadający prefencjom językowym dla locale: %s.
     Pamiętaj, że możesz używać struktury markdown do formatowania odpowiedzi, w tym nagłówków, list, pogrubienia i kursywy.
+    Twoja odpowiedź musi zawierać listę użytych dokumentów w dodatkowych danych, w formacie: "used_documents": [{"filename": "nazwa_pliku"}].
+    Użyj tej informacji, aby dostarczyć najbardziej trafną i pomocną odpowiedź.
     Poniżej znajduje się lista dokumentów, które mogą być pomocne w odpowiedzi na pytania użytkownika. Każdy dokument ma swoją kategorię, która może wskazywać na
     jego przeznaczenie lub tematykę. Użyj tych informacji, aby dostarczyć najbardziej trafną i pomocną odpowiedź.
     %s
@@ -39,6 +41,8 @@ SYSTEM_PROMPT_EN = """
     Answer solely based on the information provided below, do not guess or add your own information.
     Answer exclusively in the language corresponding to the language preferences for locale: %s.
     Remember that you can use markdown formatting in your responses, including headings, lists, bold, and italics.
+    Your response must include a list of used documents in the additional data, in the format: "used_documents": [{"filename": "file_name"}].
+    Use this information to provide the most relevant and helpful answer.
     Below is a list of documents that may be helpful in answering the user's questions. Each document has its category, which may indicate its purpose or topic.
     Use this information to provide the most relevant and helpful answer.
     %s

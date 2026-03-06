@@ -1,3 +1,5 @@
+import logging
+
 from openai import AsyncOpenAI
 from openai.types.chat.chat_completion_system_message_param import (
     ChatCompletionSystemMessageParam,
@@ -5,10 +7,22 @@ from openai.types.chat.chat_completion_system_message_param import (
 from openai.types.chat.chat_completion_user_message_param import (
     ChatCompletionUserMessageParam,
 )
+from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIClienException(Exception):
     pass
+
+
+class UsedDocument(BaseModel):
+    filename: str
+
+
+class OpenAIReponse(BaseModel):
+    content: str
+    used_documents: list[UsedDocument]
 
 
 class OpenAIClient:
@@ -23,7 +37,7 @@ class OpenAIClient:
         user_system_prompt: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
-    ) -> str:
+    ) -> OpenAIReponse:
         try:
             system_prompt_message = ChatCompletionSystemMessageParam(
                 role="system",
@@ -42,12 +56,18 @@ class OpenAIClient:
                     content=user_system_prompt,
                 )
                 completion_messages.append(user_system_prompt_message)
-            response = await self.client.chat.completions.create(
+            response = await self.client.chat.completions.parse(
                 model=model,
                 messages=completion_messages,
                 temperature=temperature,
                 max_completion_tokens=max_tokens,
+                response_format=OpenAIReponse,
             )
-            return response.choices[0].message.content or ""
+            parsed_response: OpenAIReponse | None = (
+                response.choices[0].message.parsed if response.choices else None
+            )
+            if parsed_response:
+                return parsed_response
+            return OpenAIReponse(content="", used_documents=[])
         except Exception as e:
             raise OpenAIClienException(f"Error creating chat completion: {e}")

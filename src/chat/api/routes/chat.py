@@ -15,7 +15,10 @@ from chat.infractructure.messages import (
     OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE,
     SYSTEM_PROMPT,
 )
-from chat.infractructure.openai_client import OpenAIClienException, OpenAIClient
+from chat.infractructure.openai_client import (
+    OpenAIClienException,
+    OpenAIClient,
+)
 from core.config import settings
 from core.db import get_db
 from documents.domain.services.document import get_document_predictions
@@ -52,18 +55,17 @@ async def websocket_chat(
                 f"in conversation {conversation_id}"
             )
             if not user.openai_api_key or not user.openai_api_url or not user.llm_model:
-                await websocket.send_json(
-                    MessageResponse(
-                        message=MessagePublic(
-                            id=uuid.uuid4(),
-                            content=OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE.get(
-                                user.locale,
-                                OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE["pl_PL"],
-                            ),
-                            role=MessageRole.ASSISTANT,
-                            conversation_id=conversation_uuid,
-                        )
-                    ).model_dump(mode="json")
+                await _send_message(
+                    websocket,
+                    MessagePublic(
+                        id=uuid.uuid4(),
+                        content=OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE.get(
+                            user.locale,
+                            OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE["pl_PL"],
+                        ),
+                        role=MessageRole.ASSISTANT,
+                        conversation_id=conversation_uuid,
+                    ),
                 )
             openai_client = OpenAIClient(
                 api_key=user.openai_api_key,
@@ -79,15 +81,14 @@ async def websocket_chat(
                     content=message_data["content"],
                     role=MessageRole.USER,
                 )
-                await websocket.send_json(
-                    MessageResponse(
-                        message=MessagePublic(
-                            id=user_message.id,
-                            content=user_message.content,
-                            role=user_message.role,
-                            conversation_id=user_message.conversation_id,
-                        )
-                    ).model_dump(mode="json")
+                await _send_message(
+                    websocket,
+                    MessagePublic(
+                        id=user_message.id,
+                        content=user_message.content,
+                        role=user_message.role,
+                        conversation_id=user_message.conversation_id,
+                    ),
                 )
                 if not user.openai_api_key or not user.openai_api_url:
                     bot_content = OPENAI_USER_NOT_CONFIGURED_ASSISTANT_MESSAGE.get(
@@ -100,15 +101,14 @@ async def websocket_chat(
                         content=bot_content,
                         role=MessageRole.ASSISTANT,
                     )
-                    await websocket.send_json(
-                        MessageResponse(
-                            message=MessagePublic(
-                                id=bot_message.id,
-                                content=bot_message.content,
-                                role=bot_message.role,
-                                conversation_id=bot_message.conversation_id,
-                            )
-                        ).model_dump(mode="json")
+                    await _send_message(
+                        websocket,
+                        MessagePublic(
+                            id=bot_message.id,
+                            content=bot_message.content,
+                            role=bot_message.role,
+                            conversation_id=bot_message.conversation_id,
+                        ),
                     )
                 try:
                     document_predictions = get_document_predictions(
@@ -124,21 +124,22 @@ async def websocket_chat(
                         model=user.llm_model,  # type: ignore
                         messages=[user_message.content],
                         user_system_prompt=user.openai_system_prompt,
-                        system_prompt=system_prompt
-                        % (
-                            user.locale,
-                            "\n".join(
-                                [
-                                    f"- **{doc.filename}** (Category: {category}, Size: {doc.file_size} bytes)"
-                                    for doc, category, _ in document_predictions
-                                ]
-                            ),
+                        system_prompt=await _parse_system_prompt(
+                            system_prompt_template=system_prompt,
+                            user_locale=user.locale,
+                            document_predictions=document_predictions,
                         ),
                     )
+                    correct_documents = [
+                        doc
+                        for doc, _, _ in document_predictions
+                        if doc.filename
+                        in [d.filename for d in bot_content.used_documents]  # type: ignore
+                    ]
                     bot_message = create_message(
                         session=session,
                         conversation_id=conversation_uuid,
-                        content=bot_content,
+                        content=bot_content.content,  # type: ignore
                         role=MessageRole.ASSISTANT,
                         additional_data={
                             "files": [
@@ -149,20 +150,19 @@ async def websocket_chat(
                                     "content_type": doc.content_type,
                                     "download_url": f"{settings.BACKEND_HOST}/api/v1/documents/download/{doc.id}",
                                 }
-                                for doc, _, _ in document_predictions
+                                for doc in correct_documents
                             ]
                         },
                     )
-                    await websocket.send_json(
-                        MessageResponse(
-                            message=MessagePublic(
-                                id=bot_message.id,
-                                content=bot_message.content,
-                                role=bot_message.role,
-                                conversation_id=bot_message.conversation_id,
-                                additional_data=bot_message.additional_data,
-                            )
-                        ).model_dump(mode="json")
+                    await _send_message(
+                        websocket,
+                        MessagePublic(
+                            id=bot_message.id,
+                            content=bot_message.content,
+                            role=bot_message.role,
+                            conversation_id=bot_message.conversation_id,
+                            additional_data=bot_message.additional_data,
+                        ),
                     )
                 except OpenAIClienException as e:
                     logger.warning(f"OpenAI client error: {e}")
@@ -175,15 +175,14 @@ async def websocket_chat(
                         content=bot_content,
                         role=MessageRole.ASSISTANT,
                     )
-                    await websocket.send_json(
-                        MessageResponse(
-                            message=MessagePublic(
-                                id=bot_message.id,
-                                content=bot_message.content,
-                                role=bot_message.role,
-                                conversation_id=bot_message.conversation_id,
-                            )
-                        ).model_dump(mode="json")
+                    await _send_message(
+                        websocket,
+                        MessagePublic(
+                            id=bot_message.id,
+                            content=bot_message.content,
+                            role=bot_message.role,
+                            conversation_id=bot_message.conversation_id,
+                        ),
                     )
         except MessageException as e:
             logger.error(f"Message error: {e}")
@@ -200,3 +199,21 @@ async def websocket_chat(
             await websocket.close()
         except Exception:
             pass
+
+
+async def _send_message(websocket: WebSocket, message: MessagePublic) -> None:
+    await websocket.send_json(MessageResponse(message=message).model_dump(mode="json"))
+
+
+async def _parse_system_prompt(
+    system_prompt_template: str, user_locale: str, document_predictions: list
+) -> str:
+    return system_prompt_template % (
+        user_locale,
+        "\n".join(
+            [
+                f"- **{doc.filename}** (Category: {category}, Size: {doc.file_size} bytes)"
+                for doc, category, _ in document_predictions
+            ]
+        ),
+    )

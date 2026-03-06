@@ -8,3 +8,4 @@ htmlcov
 .venv
 media
 .DS_Store
+.env

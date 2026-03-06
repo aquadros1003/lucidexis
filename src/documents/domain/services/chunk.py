@@ -72,4 +72,3 @@ def embed_document_chunks(
         logger.info(f"Successfully embedded chunks for {document_id=}.")
     except Exception as e:
         logger.error(f"Error while embedding chunks for {document_id=}: {e}")
-    logger.info(f"Enqueued embedding tasks for document {document_id=}")

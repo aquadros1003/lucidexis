@@ -1,6 +1,5 @@
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
 from pydantic import EmailStr
 from sqlmodel import (
@@ -13,9 +12,8 @@ from sqlmodel import (
     text,
 )
 
-if TYPE_CHECKING:
-    from chat.domain.models.message import Conversation
-    from documents.domain.models.document import Document
+from chat.domain.models.message import Conversation
+from documents.domain.models.document import Document
 
 
 class User(SQLModel, table=True):

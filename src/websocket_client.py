@@ -11,6 +11,7 @@ async def chat_client(ws_url: str, token: str) -> None:
     try:
         async with websockets.connect(url) as websocket:
             print("Connected! Type your messages (Ctrl+C to exit)\n")
+
             async def receive_messages():
                 try:
                     async for message in websocket:
@@ -28,6 +29,7 @@ async def chat_client(ws_url: str, token: str) -> None:
                     print("\nConnection closed by server")
                 except Exception as e:
                     print(f"\nError receiving message: {e}")
+
             receive_task = asyncio.create_task(receive_messages())
             try:
                 while True:
